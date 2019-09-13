@@ -1,0 +1,12 @@
+* After creating a TF instance:
+** Make changes
+** rm -rf /var/lib/cloud/*
+** poweroff VM
+** Copy the deployed image to somewhere persistent
+** terraform destroy
+
+* Launch a new TF instance with the new image
+** In the cloud init file add two lines to the "bootcmd:" expresion:
+  - sed -i 's/eth1/eth0/' /etc/udev/rules.d/70-persistent-net.rules
+  - udevadm trigger
+** Set up networking
