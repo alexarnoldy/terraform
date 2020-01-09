@@ -33,9 +33,12 @@ resource "libvirt_domain" "terraform_test" {
 EOF
 ----
 
+* Verify the terraform plan: `terraform plan`
+* Apply the terraform plan: `terraform apply`
+* Remove the test: `terraform destroy`
 
 
-==== Random, now unhelpful notes from 09/2019
+==== Random, now basically unhelpful notes from 09/2019
 * After creating a TF instance:
 ** Make changes
 ** rm -rf /var/lib/cloud/*
