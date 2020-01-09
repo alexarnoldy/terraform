@@ -1,3 +1,41 @@
+==== From 01/2020:
+Based in part on: https://github.com/dmacvicar/terraform-provider-libvirt#downloading
+
+.Make libvirt provider available to the current users:
+* (for leap 15.1): `zypper addrepo https://download.opensuse.org/repositories/systemsmanagement:terraform/openSUSE_Leap_15.1/systemsmanagement:terraform.repo`
+* `zypper refresh`
+* `sudo zypper install terraform-provider-libvirt`
+* `cp -p /usr/bin/terraform-provider-libvirt ~/.terraform.d/plugins/`
+* Verify the provider is available: `terraform init`
+** Should complete without error and include the phrase:
+----
+Initializing provider plugins...
+
+Terraform has been successfully initialized!
+----
+
+.Test the libvirt provider:
+* Create the libvirt.tf file:
+----
+cat <<EOF>libvirt.tf
+provider "libvirt" {
+    uri = "qemu:///system"
+}
+EOF
+----
+
+* Create the terraform_test.tf test file:
+----
+cat <<EOF>terraform_test.tf
+resource "libvirt_domain" "terraform_test" {
+  name = "terraform_test"
+}
+EOF
+----
+
+
+
+==== Random, now unhelpful notes from 09/2019
 * After creating a TF instance:
 ** Make changes
 ** rm -rf /var/lib/cloud/*
