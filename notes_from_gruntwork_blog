@@ -1,0 +1,36 @@
+https://blog.gruntwork.io/an-introduction-to-terraform-f17df9c6d180
+
+Terraform code is written in a language called HCL in files with the extension .tf. It is a declarative language, so your goal is to describe the infrastructure you want, 
+
+The first step to using Terraform is typically to configure the provider(s) you want to use. Create a file called main.tf and put the following code in it:
+
+provider "aws" {
+region = "us-east-2"
+}
+
+You can configure other settings for the AWS provider, 
+
+The terraform binary contains the basic functionality for Terraform, but it does not come with the code for any of the providers so when first starting to use Terraform, you need to run terraform init to tell Terraform to scan the code, figure out what providers you’re using, and download the code for them.
+
+By default, the provider code will be downloaded into a .terraform folder, which is Terraform’s scratch directory (you may want to add it to .gitignore)
+
+The <<-EOF and EOF are Terraform’s heredoc syntax, which allows you to create multiline strings without having to put \n all over the place
+
+An expression in Terraform is anything that returns a value. the simplest type of expressions, literals, such as strings (e.g., "ami-0c55b159cbfafe1f0") and numbers (e.g., 5).
+
+useful type of expression is a reference, which allows you to access values from other parts of your code. To access the ID of the security group resource, you are going to need to use a resource attribute reference,
+which uses the following syntax:
+
+<PROVIDER>_<TYPE>.<NAME>.<ATTRIBUTE>
+
+ATTRIBUTE is either one of the arguments of that resource (e.g., name) or one of the attributes exported by the resource (available to be referenced after it is created)
+
+you can find the list of available attributes in the documentation for each resource
+
+The Security Group ID is an attribute that is exported after it is created. You can use this security group ID in the vpc_security_group_ids parameter of the aws_instance: 
+
+vpc_security_group_ids = [aws_security_group.instance.id]
+
+When you add a reference from one resource to another, you create an implicit dependency. Terraform parses these dependencies, builds a dependency graph from them, 
+
+
