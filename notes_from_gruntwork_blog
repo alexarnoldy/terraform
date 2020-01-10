@@ -33,4 +33,21 @@ vpc_security_group_ids = [aws_security_group.instance.id]
 
 When you add a reference from one resource to another, you create an implicit dependency. Terraform parses these dependencies, builds a dependency graph from them, 
 
+Note that the server_port input variable has no default, so if you run the apply command now, Terraform will interactively prompt you to enter a value for server_port and show you the description of the variable.
+
+Can provide a value for the variable via the -var command-line option:
+$ terraform apply -var "server_port=8080"
+
+Or as an environmental variable: 
+$ export TF_VAR_server_port=8080
+
+Or as a default value in the variable declaration:
+default     = 8080
+
+
+
+
+
+
+
 
