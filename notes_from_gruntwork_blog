@@ -44,6 +44,23 @@ $ export TF_VAR_server_port=8080
 Or as a default value in the variable declaration:
 default     = 8080
 
+To use a reference inside of a string literal, you need to use a new type of expression called an interpolation, which has the following syntax:
+"${...}"
+You can put any valid reference within the curly braces and Terraform will convert it to a string. 
+
+Terraform also allows you to define output variables with the following syntax:
+output "<NAME>" {
+ value = <VALUE, i.e. reference to other attribute>
+ [CONFIG ...]
+}
+The CONFIG can contain two additional parameters, both optional: description, sensitive (set to true prevents outputing sensitive info at the end of terraform apply)
+
+* Running `terrafom apply` when there are no changes to be made only prints the output variables
+** `terraform output` does the same thing
+*** Can do `terraform output <name of output variable>` to only see that one
+**** Useful for scripting to use that one output as the input to something else
+
+* Separating out input and output variable from the code makes is reusable for different tasks
 
 
 
