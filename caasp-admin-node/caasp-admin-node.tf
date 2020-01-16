@@ -4,6 +4,12 @@ provider "libvirt" {
   uri = "qemu:///system"
 }
 
+resource "libvirt_volume" "img" {
+  name   = "base-image"
+  source = "/home/admin/caasp-terraform/SLES15-SP1-JeOS.x86_64-15.1-OpenStack-Cloud-GM.qcow2"
+  format = "qcow2"
+}
+
 #provider "libvirt" {
 #  alias = "infra1"
 #  uri   = "qemu+ssh://root@172.16.240.101/system"
@@ -39,14 +45,33 @@ resource "libvirt_network" "network" {
 }
 */
 
+/*
+################
+# Registration #
+################
+data "template_file" "register_scc" {
+  template = file("register-scc.tpl")
+  count    = var.caasp_registry_code == "" ? 0 : 1
+  vars = {
+    sle_registry_code   = var.sle_registry_code
+    caasp_registry_code = var.caasp_registry_code
+  }
+}
+*/
+
+variable "disk_size" {
+  default     = "25769803776"
+  description = "disk size (in bytes)"
+}
+
 
 ### CaaSP Admin node
 
 resource "libvirt_volume" "caasp-admin-node-volume" {
   name = "caasp-admin-node.qcow2"
   pool = "default"
-  source = "/home/admin/caasp-terraform/SLES15-SP1-JeOS.x86_64-15.1-OpenStack-Cloud-GM.qcow2"
-  format = "qcow2"
+  size = var.disk_size
+  base_volume_id = libvirt_volume.img.id
 }
 
 data "template_file" "user_data" {
@@ -99,5 +124,7 @@ resource "libvirt_domain" "caasp-admin-node" {
 # Output Server IP
  output "ip" {
 #  value = "${libvirt_domain.db1.network_interface.0.addresses.0}"
-  value = libvirt_domain.caasp-admin-node.network_interface.0.addresses
+  value = [libvirt_domain.caasp-admin-node.network_interface.0.addresses]
+#  value = [libvirt_domain.worker.*.network_interface.0.addresses.0]
+
 }
