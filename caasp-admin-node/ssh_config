@@ -1,0 +1,9 @@
+HOST caasp-lb.caasp-susecon.lab caasp-lb lb
+  HOSTNAME caasp-lb.caasp-susecon.lab
+HOST caasp-master-0.caasp-susecon.lab caasp-master-0 master-0
+  HOSTNAME caasp-master-0.caasp-susecon.lab
+HOST caasp-worker-0.caasp-susecon.lab caasp-worker-0 worker-0
+  HOSTNAME caasp-worker-0.caasp-susecon.lab
+HOST caasp-worker-1.caasp-susecon.lab caasp-worker-1 worker-1
+  HOSTNAME caasp-worker-1.caasp-susecon.lab 
+

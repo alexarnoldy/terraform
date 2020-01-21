@@ -2,6 +2,7 @@
 */
 provider "libvirt" {
   uri = "qemu:///system"
+#   uri = "qemu+ssh://admin@infra1.caaspv4.com/system"
 }
 
 resource "libvirt_volume" "img" {
