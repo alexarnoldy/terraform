@@ -62,11 +62,39 @@ provider "libvirt" {
 }
 ----
 
+=== To copy files and directories to an instance upon creation
+* From: https://www.terraform.io/docs/provisioners/file.html
+* Can copy individual files, or directories, or specific content into a file
+----
+  # Copies the myapp.conf file to /etc/myapp.conf
+  provisioner "file" {
+    source      = "conf/myapp.conf"
+    destination = "/etc/myapp.conf"
+  }
+----  
+
+CAUTION: Uses rysnc behavoir which varies based on a directory specified with a trailing slash. 
+
+----
+  # Copies the configs.d folder to /etc/configs.d
+  provisioner "file" {
+    source      = "conf/configs.d"
+    destination = "/etc"
+  }
+
+  # Copies all files and folders in apps/app1 to D:/IIS/webapp1
+  provisioner "file" {
+    source      = "apps/app1/"
+    destination = "D:/IIS/webapp1"
+  }
+}
+----
 
 
 
 
-==== These are random, now basically unhelpful notes from 09/2019
+
+=== These are random, now basically unhelpful notes from 09/2019
 * After creating a TF instance:
 ** Make changes
 ** rm -rf /var/lib/cloud/*
