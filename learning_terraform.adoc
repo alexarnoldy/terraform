@@ -90,15 +90,12 @@ CAUTION: Uses rysnc behavoir which varies based on a directory specified with a 
 }
 ----
 
-=== Base64 encoding a file to be inserted by cloud_init seems to preserve formatting, such as leading spaces
-* Encode with: `cat <file> | base64 | awk '{print}' ORS='' && echo`
-* In the cloud init file:
+==== Populating the authorized_keys file
 ----
-  - path: <absolute path name of file
-    encoding: b64
-    permissions: "0644"
-    content: <encoded content>
-----
+authorized_keys = [
+"<public key>", "<public key>", "<public key>"
+]
+
 
 
 

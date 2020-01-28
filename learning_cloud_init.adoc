@@ -1,0 +1,30 @@
+
+== Cloud Init 
+ 
+==== Base64 encoding a file to be inserted by cloud_init seems to preserve formatting, such as leading spaces 
+* Encode with: `cat <file> | base64 | awk '{print}' ORS='' && echo` 
+* In the cloud init file: 
+---- 
+  - path: <absolute path name of file 
+    encoding: b64 
+    permissions: "0644" 
+    content: <encoded content> 
+---- 
+ 
+==== NTP should be configured in TF but doesn't seem to be for libvirt
+* Can always just do it in cloud_init
+----
+ntp:
+  enabled: true
+  ntp_client: chrony
+  pools: [0.pool.ntp.org, 1.pool.ntp.org, 2.pool.ntp.org]
+----
+
+==== Running scripts
+* Currently putting them under runcmd so they run only when the instance is first created
+* Always run as root. To run as another users: `sudo -H -u <user> bash <absolute path to script>`
+** Use same but `bash -c <commands>` to run loose commands
+
+
+
+// vim: set syntax=asciidoc:
