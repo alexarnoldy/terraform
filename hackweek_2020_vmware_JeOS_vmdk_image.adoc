@@ -1,0 +1,103 @@
+## Current idea is to download the VMware JeOS image create a VM with network access. Setup  basic settings, then install cloud-init and make it into a template. The hope is that this will be easier than the documented method of installing a SLES VM, as well as maintain consitency with the libvirt design and cloud-init compatibility.
+## Fallback idea is to convert the OpenStack JeOS image to ESXi6 compatible vmdk and re-use the exact same cloud-init stuff in KVM and VMware.
+
+NOTE: Currently these instructions require a local RMT server to register against and download updates.
+
+==== Obtain and upload the VMware JeOS image
+* Go to https://download.suse.com and navigate to the "SUSE Linux Enterprise Server 15 SP1 JeOS" images
+* Download the "SLES15-SP1-JeOS.x86_64-15.1-VMware-QU[1234].vmdk" image 
+** QU? represents the current Quartarly Updated image. 
+* Use a vSphere Client to create a folder in the desired datastore that will keep the VM template (In this guide the folder will be called "CaaSP-Node-Template")
+* Upload the JeOS image into the new folder on the datastore
+
+NOTE: Copying or moving the JeOS image with vSphere Client might leave locks on the file which will make it unusable by the VM. Uploading the image into the appropriate folders seems to avoid this issue.
+
+
+////
+## Current idea is to convert the OpenStack JeOS image to ESXi6 compatible vmdk so we can re-use the (hopefully exact) same cloud-init stuff in KVM and VMware.
+
+==== Obtain, convert and upload the OpenStack JeOS image
+* Go to https://download.suse.com and navigate to the "SUSE Linux Enterprise Server 15 SP1 JeOS" images
+* Download the "SLES15-SP1-JeOS.x86_64-15.1-OpenStack-Cloud-QU[1234].qcow2" image to a KVM host
+** QU? represents the Quartarly Updated image. 
+
+NOTE: Seems like need to mount the qcow2 image and enable root login to be able to update the VM template before deploying from it. Going to skip for now and not update the VM template.
+
+
+* Set the QU_VERSION variable (i.e. `export QU_VERSION=QU2`) and convert the image from qcow2 to vmdk: 
+----
+export QU_VERSION= 
+qemu-img convert -f qcow2 -O vmdk \
+-o adapter_type=lsilogic,subformat=streamOptimized,compat6 \
+SLES15-SP1-JeOS.x86_64-15.1-OpenStack-Cloud-${QU_VERSION}.qcow2 \
+SLES15-SP1-JeOS.x86_64-15.1-OpenStack-Cloud-${QU_VERSION}.vmdk`
+----
+
+==== Upload the vmdk image to an ESXi host and convert it to be ESXi compatible
+* Use a vSphere client to upload the vmdk image to a datastore available to the ESXi host
+* Use a vSphere client to enable the ESXi Shell and SSH
+* SSH to the ESXi host as root 
+* cd into the datastore containing the vmdk image (usually under /vmfs/volumes/<datastore name>)
+* Set the QU_VERSION variable (i.e. `export QU_VERSION=QU2`) and convert the image to be ESXi compatible
+----
+export QU_VERSION= 
+vmkfstools -i \
+SLES15-SP1-JeOS.x86_64-15.1-OpenStack-Cloud-${QU_VERSION}.vmdk \
+SLES15-SP1-JeOS.x86_64-15.1-OpenStack-Cloud-${QU_VERSION}-ESXi-compat.vmdk
+----
+////
+
+
+==== Create the VM template based on the JeOS image
+
+NOTE: Use a vSphere client for the following steps. The exact steps may vary between the vSphere Web client or vSphere thick client
+
+* Create a new VM template from the JeOS vmdk image based on the following options:
+** (if offered) Create a new virtual machine
+** (if offered) Custom Configuration
+** Name: CaaSP-Node-Template
+** (if offered) Select the correct datastore
+** Guest Operating System: Linux
+*** Select SUSE Linux Enterprise 15 SP1 (64-bit) or highest version available
+** Minimum of 4 vCPUs
+** Minimum Memory Size: of 4 GB
+** (if shown) Delete the "New Hard Disk" with the "X" at the far right
+** A single "Network Connection", preferably connected to a network that has access to an RMT server or the Internet
+*** (if offered) Adapter type: VMXNET 3 
+
+TIP: If a DHCP server is not available on the network the VM is connected to, the network settings can be configured by logging in as root after configuring basic settings on the VM. The can be set persistently in the /etc/sysconfig/network/ifcfg-eth0 file or temporarily using the ip command to add an IP address and default route to eth0, and using vim to add a DNS server to the /etc/resolv.conf file.
+
+** LSI Logic Parallel "SCSI controller"
+** For the "Disk", or "New device", select "Use an existing virtual disk" or add "Existing Hard Disk"
+*** Browse to the datastore and "CaaSP-Node-Template" folder then select the JeOS vmdk image
+
+==== Power on the VM and use the console to configure and update it
+* Power on the VM and open its console
+* Update the basic setings and accept the license
+* If needed, update the network settings so the VM can reach an RMT server or the Internet
+* Register SLES with an RMT server: `SUSEConnect --url <http(s)://<RMT IP or hostname>`
+** Alternately, register with SCC: `SUSEConnect -e <email address> -r <CaaSP registration code>`
+* Register the containers module: `SUSEConnect -p sle-module-containers/15.1/x86_64`
+* Register CaaSP with an RMT server: `SUSEConnect -p caasp/4.0/x86_64 --url <http(s)://<RMT IP or hostname>`
+** Alternately, register with SCC: `SUSEConnect -p caasp/4.0/x86_64 -r <CaaSP registration code>`
+* Update the SLES software: `zypper --non-interactive update`
+* After the update completes, reboot the VM once, then login and power it off: `poweroff`
+* Close the console and use vSphere Client to convert the VM into a template
+* Create a new Resource Pool (In this guide the Resource Pool will be called "hackweek_2020_rp")
+
+==== Next steps should blend the official documentation and the TF automated deployment work for SUSECON
+
+
+
+////
+==== Register and update the template
+
+NOTE: This step is option. It will reduce the total deployment time of each cluster slightly to update the software on the template. This step will only work if the template is connected to a network that has access to an RMT server (or with a registration code, access to the Internet).
+////
+
+
+
+
+
+
+// vim: set syntax=asciidoc:

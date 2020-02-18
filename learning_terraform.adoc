@@ -63,6 +63,7 @@ provider "libvirt" {
 ----
 
 === To copy files and directories to an instance upon creation
+* NOTE: Terraform strongly discourages using provisioners unless there are no other options
 * From: https://www.terraform.io/docs/provisioners/file.html
 * Can copy individual files, or directories, or specific content into a file
 ----
@@ -112,3 +113,6 @@ authorized_keys = [
   - sed -i 's/eth1/eth0/' /etc/udev/rules.d/70-persistent-net.rules
   - udevadm trigger
 ** Set up networking
+
+
+// vim: set syntax=asciidoc:
