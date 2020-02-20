@@ -25,6 +25,30 @@ ntp:
 * Always run as root. To run as another users: `sudo -H -u <user> bash <absolute path to script>`
 ** Use same but `bash -c <commands>` to run loose commands
 
+==== Maintaining variables between TF and cloud init
+* First must be declared in variables.tf, such as:
+----
+variable "username" {
+  default     = "sles"
+  description = "Username for the cluster nodes"
+}
 
+variable "password" {
+  default     = "linux"
+  description = "Password for the cluster nodes"
+}
+----
+
+* Then needs a block in the <file>.tf, such as:
+----
+data "template_file" "admin_cloud_init_user_data" {
+  vars = {
+    username        = var.username
+    password        = var.password
+  }
+}
+----
+* Use in cloud-init file with `${username}`
+ 
 
 // vim: set syntax=asciidoc:
