@@ -7,6 +7,7 @@
 * Seems like the cloud_config_modules and cloud_final_modules only run on first boot
 * Can make a module (scripts-user in this example) run on every boot my changing from `- scripts-user` to `- [scripts-user, always]`
 * I.e. (Should work but haven't tested) In the cloud-init file that is passed to the target system, include:
+
 ----
 cloud_final_modules:
  - rightscale_userdata
@@ -17,7 +18,7 @@ cloud_final_modules:
  - keys-to-console
  - phone-home
  - final-message
- ----
+----
  
  ** Should be able to specify only the modules that are needed
 
