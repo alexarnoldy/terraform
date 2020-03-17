@@ -24,8 +24,6 @@ cloud_final_modules:
 
 * Scripts that are populated in `/var/lib/cloud/scripts/per-boot/` will run on every boot
 
-NOTE: By doing low level stuff with bootcmd, then software updates in runcmd (including a reboot), then running the cluster configuration script in scripts-per-boot (by just dropping it into /var/lib/cloud/scripts/per-boot/); I am able to update the software and get the needed reboot, then building the cluster when the softare is ready. Still need to verify if scripts-per-boot doesn't get executed because the reboot happens before it is called. SCRIPT MUST BE IDEMPOTENT!
-
 * Seems like the scripts/per-boot/ didn't wait for runcmd to finish before running (or perhaps was called before runcmd)
 
 IMPORTANT: To get the desired effect of 1)update software and kernel, 2) reboot, 3)run cluster configuration script *as* *user* *sles*; had to a)use write-files to put deploy_cluster.sh and recover_deployment.sh in /root (recover_deployment.sh is basically just one line: `sudo -H -u sles bash /root/deploy_caasp.sh`), b)in runcmd include `  - cp -p /root/recover_deployment.sh /var/lib/cloud/scripts/per-boot/` just before `  - reboot`, c)make deploy_caasp.sh idempotent by having it exit if it finds a directory under /home/sles with the name of the cluster, which is direvied from the /home/sles/.all_nodes file. Might have gotten there easier by using `scripts-per-once` but didnt' have time to explore.
