@@ -1,6 +1,29 @@
 
 == Cloud Init 
  
+==== Review module execution order: /etc/cloud/cloud.cfg
+* bootcmd (and possibly all cloud_init_modules) run on every boot
+* Seems like the cloud_config_modules and cloud_final_modules only run on first boot
+* Can make a module (scripts-user in this example) run on every boot my changing from `- scripts-user` to `- [scripts-user, always]`
+* I.e. In the cloud-init file that is passed to the target system, include:
+----
+cloud_final_modules:
+ - rightscale_userdata
+ - scripts-per-once
+ - scripts-per-boot
+ - scripts-per-instance
+ - [scripts-user, always]
+ - keys-to-console
+ - phone-home
+ - final-message
+ -----
+ 
+ ** Should be able to specify only the modules that are needed
+
+* Scripts that are populated in `/var/lib/cloud/scripts/per-boot/` will run on every boot
+
+NOTE: By doing low level stuff with bootcmd, then software updates in runcmd (including a reboot), then running the cluster configuration script in scripts-per-boot (just by dropping it into /var/lib/cloud/scripts/per-boot/); I am able to update the software and get the needed reboot, then building the cluster when the softare is ready. Still need to verify if scripts-per-boot doesn't get executed because the reboot happens before it is called. SCRIPT MUST BE IDEMPOTENT!
+
 ==== Base64 encoding a file to be inserted by cloud_init seems to preserve formatting, such as leading spaces 
 * Encode with: `cat <file> | base64 | awk '{print}' ORS='' && echo` 
 * In the cloud init file: 
