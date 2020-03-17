@@ -26,7 +26,7 @@ cloud_final_modules:
 
 * Seems like the scripts/per-boot/ didn't wait for runcmd to finish before running (or perhaps was called before runcmd)
 
-IMPORTANT: To get the desired effect of 1)update software and kernel, 2) reboot, 3)run cluster configuration script *as* *user* *sles*; had to a)use write-files to put deploy_cluster.sh and recover_deployment.sh in /root (recover_deployment.sh is basically just one line: `sudo -H -u sles bash /root/deploy_caasp.sh`), b)in runcmd include `  - cp -p /root/recover_deployment.sh /var/lib/cloud/scripts/per-boot/` just before `  - reboot`, c)make deploy_caasp.sh idempotent by having it exit if it finds a directory under /home/sles with the name of the cluster, which is direvied from the /home/sles/.all_nodes file. Might have gotten there easier by using `scripts-per-once` but didnt' have time to explore.
+IMPORTANT: To get the desired effect of 1)update software and kernel, 2) reboot, 3)run cluster configuration script *as* *user* *sles*; had to a)use write-files to put deploy_cluster.sh and recover_deployment.sh in /root (recover_deployment.sh is basically just one line: `sudo -H -u sles bash /root/deploy_caasp.sh` ), b)in runcmd include `- cp -p /root/recover_deployment.sh /var/lib/cloud/scripts/per-boot/` just before `- reboot`, c)make deploy_caasp.sh idempotent by having it exit if it finds a directory under /home/sles with the name of the cluster, which is direvied from the /home/sles/.all_nodes file. Might have gotten there easier by using `scripts-per-once` but didnt' have time to explore.
 
 ==== Base64 encoding a file to be inserted by cloud_init seems to preserve formatting, such as leading spaces 
 * Encode with: `cat <file> | base64 | awk '{print}' ORS='' && echo` 
