@@ -1,0 +1,201 @@
+////
+Useful guide: https://floating.io/2019/04/iaas-terraform-and-vsphere/
+////
+
+## Current effort is: 
+* Download the VMware JeOS image to an ESXi host and create a VM with basic settings and Internet access. 
+* Install kernel-default, cloud-init and any other required software (i.e. CaaSP Node), and update all software. 
+* Make it into a template. 
+* Deploy the Admin VM from the template and attach it to a network with access to the Internet. 
+** Install CaaSP Management software and clone this repo into it. 
+** Deploy DHCP/DNS/Chrony containers, as needed onto the Admin VM.
+* Update the metadata.yaml and userdata.yaml cloud-init files.
+* Deploy (via clone) the master and worker nodes from the VM template, with cloud-init doing most of the customization.
+* The hope is that this will be easier than the documented method of installing a SLES VM, as well as maintain consitency with the libvirt design and cloud-init compatibility.
+## Fallback idea is to convert the OpenStack JeOS image to ESXi6 compatible vmdk and reuse the exact same cloud-init stuff in KVM and VMware.
+
+NOTE: Should try to do as much in cloud-init as possible with KVM and VMware to increase reusability.
+
+NOTE: Currently these instructions require a local RMT server to register against and download updates.
+
+==== Obtain and upload the VMware JeOS image
+* Go to https://download.suse.com and navigate to the "SUSE Linux Enterprise Server 15 SP1 JeOS" images
+* Download the "SLES15-SP1-JeOS.x86_64-15.1-VMware-QU[1234].vmdk.xz" image 
+** QU? represents the current Quartarly Updated image. 
+* Use 7-Zip or another program to extract the .vmdk file from the .xz package
+* Use a vSphere Client to create a folder in the desired datastore that will keep the VM template (In this guide the folder will be called "CaaSP-Node-Template")
+* Upload the JeOS image into the new folder on the datastore
+
+NOTE: Copying or moving the JeOS image with vSphere Client might leave locks on the file which will make it unusable by the VM. Uploading the image into the appropriate folders seems to avoid this issue.
+
+
+////
+## Current idea is to convert the OpenStack JeOS image to ESXi6 compatible vmdk so we can re-use the (hopefully exact) same cloud-init stuff in KVM and VMware.
+
+==== Obtain, convert and upload the OpenStack JeOS image
+* Go to https://download.suse.com and navigate to the "SUSE Linux Enterprise Server 15 SP1 JeOS" images
+* Download the "SLES15-SP1-JeOS.x86_64-15.1-OpenStack-Cloud-QU[1234].qcow2" image to a KVM host
+** QU? represents the Quartarly Updated image. 
+
+NOTE: Seems like need to mount the qcow2 image and enable root login to be able to update the VM template before deploying from it. Going to skip for now and not update the VM template.
+
+
+* Set the QU_VERSION variable (i.e. `export QU_VERSION=QU2`) and convert the image from qcow2 to vmdk: 
+----
+export QU_VERSION= 
+qemu-img convert -f qcow2 -O vmdk \
+-o adapter_type=lsilogic,subformat=streamOptimized,compat6 \
+SLES15-SP1-JeOS.x86_64-15.1-OpenStack-Cloud-${QU_VERSION}.qcow2 \
+SLES15-SP1-JeOS.x86_64-15.1-OpenStack-Cloud-${QU_VERSION}.vmdk`
+----
+
+==== Upload the vmdk image to an ESXi host and convert it to be ESXi compatible
+* Use a vSphere client to upload the vmdk image to a datastore available to the ESXi host
+* Use a vSphere client to enable the ESXi Shell and SSH
+* SSH to the ESXi host as root 
+* cd into the datastore containing the vmdk image (usually under /vmfs/volumes/<datastore name>)
+* Set the QU_VERSION variable (i.e. `export QU_VERSION=QU2`) and convert the image to be ESXi compatible
+----
+export QU_VERSION= 
+vmkfstools -i \
+SLES15-SP1-JeOS.x86_64-15.1-OpenStack-Cloud-${QU_VERSION}.vmdk \
+SLES15-SP1-JeOS.x86_64-15.1-OpenStack-Cloud-${QU_VERSION}-ESXi-compat.vmdk
+----
+////
+
+
+==== Create the VM template based on the JeOS image
+
+NOTE: Use a vSphere client for the following steps. The exact steps may vary between the vSphere web client or vSphere thick client
+
+* Create a new VM from the JeOS vmdk image based on the following options:
+** (if offered) Create a new virtual machine
+** (if offered) Custom Configuration
+** Name: CaaSP-Node-Template
+** (if offered) Select the correct datastore
+** Guest Operating System: Linux
+*** Select SUSE Linux Enterprise 15 SP1 (64-bit) or highest version available
+** Minimum of 4 vCPUs
+** Minimum Memory Size: of 4 GB
+** (if shown) Delete the "New Hard Disk" with the "X" at the far right
+** A single "Network Connection", preferably connected to a network that has access to an RMT server or to the Internet
+*** (if offered) Adapter type: VMXNET 3 
+
+** LSI Logic Parallel "SCSI controller"
+** For the "Disk", or "New device", select "Use an existing virtual disk" or add "Existing Hard Disk"
+*** Browse to the datastore and "CaaSP-Node-Template" folder then select the JeOS vmdk image
+
+==== Power on the VM and use the console to configure and update it
+* Power on the CaaSP-Node-Template VM and open its console
+* Update the basic settings, including setting the root password, and accept the license
+* Log into the VM console as root
+
+TIP: If a DHCP server is not available on the network the VM is connected to, the network settings can be configured by logging in as root after configuring basic settings on the VM. The configuration can be set persistently in the /etc/sysconfig/network/ifcfg-eth0 file or temporarily using the ip command to add an IP address and default route to eth0, and using vim to add a DNS server to the /etc/resolv.conf file.
+
+** If needed, update the network settings so the VM can reach an RMT server or the Internet
+** Register SLES with an RMT server: `SUSEConnect --url <http(s)://<RMT IP or hostname>`
+*** Alternately, register with SCC: `SUSEConnect -e <email address> -r <CaaSP registration code>`
+** Register the containers module: `SUSEConnect -p sle-module-containers/15.1/x86_64`
+** Register CaaSP with an RMT server: `SUSEConnect -p caasp/4.0/x86_64 --url <http(s)://<RMT IP or hostname>`
+*** Alternately, register with SCC: `SUSEConnect -p caasp/4.0/x86_64 -r <CaaSP registration code>`
+* Install the default kernel and open VM tools software: `zypper install kernel-default open-vm-tools`
+** When prompted that kernel-default conflicts with kernel-default-base, choose to uninstall kernel-default-base
+* Update the SLES software: `zypper update`
+* Power off the template VM: `poweroff`
+* Clone the template VM to a CaaSP Admin node
+** Select a name for the VM that indicates it will be the CaaSP Admin node (In this guide it will be named CaaSP-Admin-Node)
+* Select the `Thin Provision` virtual disk format
+* DO NOT power on the VM at this time
+* Select Finish
+
+NOTE: Another network adapter will need to be added to the Admin node before powering it on, later in the process
+
+* Power on the template VM and login as root
+** Register the public cloud module: `SUSEConnect -p sle-module-public-cloud/15.1/x86_64`
+* Add the software that will be needed for the clsuter nodes: `zypper install -t pattern SUSE-CaaSP-Node`
+* Install the cloud-init software: `zypper install cloud-init cloud-init-vmware-guestinfo`
+* If the CaaSP cluster nodes will register with a different service than the one used by the VM template (this is not common), de-register the template now: `SUSEConnect -d; SUSEConnect --cleanup`
+* Clean out the identity of the template:
+----
+rm /etc/machine-id /var/lib/zypp/AnonymousUniqueId \
+/var/lib/systemd/random-seed /var/lib/dbus/machine-id \
+/var/lib/wicked/*
+----
+* Delete unneeded BTRFS snapshots: 
+----
+snapper delete $(snapper list | awk '/important=no/{print$1}')
+----
+
+* Enable cloud-init: `systemctl enable cloud-init cloud-init-local cloud-config cloud-final`
+* Power off the template VM: `poweroff`
+* Close the console and use vSphere Client to convert the VM into a template
+* Create a new Resource Pool (In this guide the Resource Pool will be called "CaaSP_RP")
+
+
+==== Configure the Admin node 
+
+* Before powering on the Admin VM, edit its configuration to add another VMXNET3 network interface
+** The interface can be attached to any network, but be sure to uncheck the `connected` box for it
+* Login to the Admin node as root via the vSphere console or ssh
+* Add the software that will be needed for the Admin node: `zypper install -t pattern SUSE-CaaSP-Management`
+** Optionally, add the NFS server software if the Admin node will provide NFS storage to the CaaSP cluster: `zypper install nfs-kernel-server`
+* Install Git: `zypper install git-core`
+* Set the hostname of the admin node, with the domain name that will be used for CaaSP cluster (In this guide it will be admin.caasp-cluster.local): `hostnamectl set-hostname <Fully qualified hostname>`
+
+==== Optionally, configure the Admin node as a NAT router for the cluster network
+* If there is not already a NAT router available for the cluster network, follow the instructions in this document, https://github.com/alexarnoldy/caasp-cloud_config/blob/master/NAT_router_config.adoc, to configure the Admin node as the NAT router for the cluster network
+
+==== Optionally, create DHCP and/or DNS and/or NTP services on the Admin node
+
+NOTE: Since dnsmasq doesn't provide DDNS services, using DHCP on the cluster network offers very limited value from a programtic perspective. Even dnsmasq's DNS services will be used primarily to consolidate the basic resolution needs of the cluster network.
+
+IMPORTANT: Reliable NTP services are needed for the CaaSP cluster. Providing a local NTP service, like the Chrony pod as described below, is highly recommeneded.
+
+* Podman is needed to deploy one or more of these services
+** As the root user, install podman on the Admin node: `zypper install podman`
+
+===== Deploy a dnsmasq container for DNS or DNS+DHCP services
+* Create a directory to contain the dnsmasq installation and cd into it
+* Clone this repository: `git clone https://github.com/alexarnoldy/opensuse-dnsmasq-container.git; cd opensuse-dnsmasq-container`
+** Populate the `dnsmasq_hosts` file with entries for the master(s) and worker nodes
+*** The default Terraform cluster designed for this project matches the following address scheme:
+**** Set this variable to the network portion of the subnet that will be used in the cluster network: `export NETWORK="10.110"`
+----
+cat <<EOF> dnsmasq_hosts
+${NETWORK}.2.0		master-0
+${NETWORK}.2.1		master-1
+${NETWORK}.2.3		master-3
+${NETWORK}.2.0		worker-0
+${NETWORK}.2.1		worker-1
+${NETWORK}.2.2		worker-2
+${NETWORK}.2.3		worker-3
+EOF
+----
+
+NOTE: In this guide the dnsmasq.conf file parameter `domain` will be `caasp-cluster.local` and the `interface` paramter will be `eth1`. Since DHCP is not used in this example, all lines that begin with `dhcp` will be commented out.
+
+* Follow the rest of the directions in the README.adoc
+
+===== Deploy a Chrony container for NTP services
+* Create a directory to contain the Chrony installation and cd into it
+* Clone this repository: `git clone: https://github.com/alexarnoldy/opensuse-chrony-container.git`
+* Follow the directions in the README.adoc
+
+
+
+==== Next steps should blend the official documentation and the TF automated deployment work for SUSECON
+
+
+
+////
+==== Register and update the template
+
+NOTE: This step is option. It will reduce the total deployment time of each cluster slightly to update the software on the template. This step will only work if the template is connected to a network that has access to an RMT server (or with a registration code, access to the Internet).
+////
+
+
+
+
+
+
+// vim: set syntax=asciidoc:

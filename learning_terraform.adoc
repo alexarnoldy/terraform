@@ -98,6 +98,8 @@ authorized_keys = [
 ]
 
 
+==== Working with VMware (especially after learning on libvirt)
+* Seems obvious, but need to have the infrastucture to manage IPs and route on the target network.
 
 
 === These are random, now basically unhelpful notes from 09/2019
