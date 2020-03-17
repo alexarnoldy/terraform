@@ -16,7 +16,7 @@ cloud_final_modules:
  - keys-to-console
  - phone-home
  - final-message
- -----
+ ----
  
  ** Should be able to specify only the modules that are needed
 
