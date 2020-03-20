@@ -150,7 +150,13 @@ NOTE: Skip this step if the desired private network already exists. These steps 
 * Add the software that will be needed for the Admin node: `zypper install -t pattern SUSE-CaaSP-Management`
 ** Optionally, add the NFS server software if the Admin node will provide NFS storage to the CaaSP cluster: `zypper install nfs-kernel-server`
 * Install Git: `zypper install git-core`
-* Set the hostname of the admin node, with the domain name that will be used for CaaSP cluster (In this guide it will be admin.caasp-cluster.local): `hostnamectl set-hostname <Fully qualified hostname>`
+* Set the hostname of the admin node, with the domain name that will be used for CaaSP cluster (In this guide it will be admin.caasp-cluster.local): 
+----
+export HOSTNAME=
+----
+----
+hostnamectl set-hostname ${HOSTNAME}
+----
 
 ==== Optionally, configure the Admin node as a NAT router for the cluster network
 * If there is not already a NAT router available for the cluster network, follow the instructions in this document, https://github.com/alexarnoldy/caasp-cloud_config/blob/master/NAT_router_config.adoc, to configure the Admin node as the NAT router for the cluster network
