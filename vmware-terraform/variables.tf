@@ -69,27 +69,27 @@ variable "rmt_server_url" {
 }
 
 variable "repositories" {
-#  type = string
-  default = "https://download.opensuse.org/repositories/devel:/CaaSP:/Head:/ControllerNode/openSUSE_Leap_15.0"
-#  default = [
-#    {
-#      caasp_devel_leap15 = "https://download.opensuse.org/repositories/devel:/CaaSP:/Head:/ControllerNode/openSUSE_Leap_15.0"
-#    },
-#  ]
-
-  description = "Urls of the repositories to mount via cloud-init"
+  type        = map(string)
+  default     = {}
+  description = "URLs of the repositories to mount via cloud-init"
 }
 
 
-variable "admin_memory" {
-  default     = 4096
-  description = "The amount of RAM for the admin"
+variable "ntp_servers" {
+  type        = list(string)
+  default     = []
+  description = "List of ntp servers to configure"
 }
 
-variable "admin_vcpu" {
-  default     = 2
-  description = "The amount of virtual CPUs for the admin"
-}
+#variable "admin_memory" {
+#  default     = 4096
+#  description = "The amount of RAM for the admin"
+#}
+#
+#variable "admin_vcpu" {
+#  default     = 2
+#  description = "The amount of virtual CPUs for the admin"
+#}
 
 variable "master_count" {
   default     = 1
@@ -104,6 +104,11 @@ variable "master_memory" {
 variable "master_vcpu" {
   default     = 2
   description = "The amount of virtual CPUs for a master"
+}
+
+variable "master_disk_size" {
+  default     = 20
+  description = "Size of the root disk in GB on master node"
 }
 
 variable "worker_count" {
@@ -121,19 +126,24 @@ variable "worker_vcpu" {
   description = "The amount of virtual CPUs for a worker"
 }
 
-variable "global_worker_memory" {
-## Set default to 1 to effectively disable the global workers
-#  default     = 1
-  default     = 12288
-  description = "The amount of RAM for a worker"
+variable "worker_disk_size" {
+  default     = 20
+  description = "Size of the root disk in GB on worker node"
 }
 
-variable "global_worker_vcpu" {
+#variable "global_worker_memory" {
 ## Set default to 1 to effectively disable the global workers
 #  default     = 1
-  default     = 8
-  description = "The amount of virtual CPUs for a worker"
-}
+#  default     = 12288
+#  description = "The amount of RAM for a worker"
+#}
+
+#variable "global_worker_vcpu" {
+## Set default to 1 to effectively disable the global workers
+#  default     = 1
+#  default     = 8
+#  description = "The amount of virtual CPUs for a worker"
+#}
 
 variable "name_prefix" {
 #  type        = string
@@ -147,11 +157,11 @@ variable "domain_name" {
   description = "The domain name"
 }
 
-variable "lan_network" {
+#variable "lan_network" {
 #  type        = string
-  default     = "172.16.240.0/24"
-  description = "Network used by the cluster"
-}
+#  default     = "172.16.240.0/24"
+#  description = "Network used by the cluster"
+#}
 
 
 variable "lan_net_base" {
