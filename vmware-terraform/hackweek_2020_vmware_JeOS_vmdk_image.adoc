@@ -2,6 +2,10 @@
 Useful guide: https://floating.io/2019/04/iaas-terraform-and-vsphere/
 ////
 
+## Current state of this document: Developing with changing perspective on the best path to follow. Continually changing and refining. 
+
+IMPORTANT: This document is based on a fairly narrow use case in which (currently) the CaaS Platform cluster is deployed to a private host network (pre-existing or created with this document) with one thin-provisioned, 24GB virtual disk for each node. These instructions presume a licensed ESXi host and were developed using the vCenter web client. Diviations from these specs would require several, as of yet unexpored, adjustments.
+
 ## Current effort is: 
 * Download the VMware JeOS image to an ESXi host and create a VM with basic settings and Internet access. 
 * Install kernel-default, cloud-init and any other required software (i.e. CaaSP Node), and update all software. 
@@ -114,7 +118,7 @@ NOTE: Another network adapter will need to be added to the Admin node before pow
 ** Register the public cloud module: `SUSEConnect -p sle-module-public-cloud/15.1/x86_64`
 * Add the software that will be needed for the clsuter nodes: `zypper install -t pattern SUSE-CaaSP-Node`
 * Install the cloud-init software: `zypper install cloud-init cloud-init-vmware-guestinfo`
-* If the CaaSP cluster nodes will register with a different service than the one used by the VM template (this is not common), de-register the template now: `SUSEConnect -d; SUSEConnect --cleanup`
+* *ONLY IF* the CaaSP cluster nodes will register with a different service than the one used by the VM template (this is not common), de-register the template now: `SUSEConnect -d; SUSEConnect --cleanup`
 * Clean out the identity of the template:
 ----
 rm /etc/machine-id /var/lib/zypp/AnonymousUniqueId \
@@ -131,12 +135,18 @@ snapper delete $(snapper list | awk '/important=no/{print$1}')
 * Close the console and use vSphere Client to convert the VM into a template
 * Create a new Resource Pool (In this guide the Resource Pool will be called "CaaSP_RP")
 
+==== Optionally, Use the vSphere client to create a private VM network for the CaaS Platform cluster
+
+NOTE: Skip this step if the desired private network already exists. These steps are based on using the vSphere web client, creating a host network. Adjust, as required, for the vSphere thick client or for creating distributed networking.
+
+* Select the ESXi host, then `Action`, `Add Networking...`
+* Select `Virtual Machine Port Group`, select an existing standard vSwitch that does not have vmnics attached to it, or create a new one that has no physical network adapters assigned to it
+* Provide a Network label (In this guide it will be caasp-network), but do not set a VLAN tag
 
 ==== Configure the Admin node 
 
-* Before powering on the Admin VM, edit its configuration to add another VMXNET3 network interface
-** The interface can be attached to any network, but be sure to uncheck the `connected` box for it
-* Login to the Admin node as root via the vSphere console or ssh
+* Before powering on the Admin VM, edit its settings to add another VMXNET3 network interface attached to the appropriate VM network (i.e. caasp-network)
+* Power on the Admin VM and login to the Admin node as root via the vSphere console or ssh
 * Add the software that will be needed for the Admin node: `zypper install -t pattern SUSE-CaaSP-Management`
 ** Optionally, add the NFS server software if the Admin node will provide NFS storage to the CaaSP cluster: `zypper install nfs-kernel-server`
 * Install Git: `zypper install git-core`
@@ -155,7 +165,7 @@ IMPORTANT: Reliable NTP services are needed for the CaaSP cluster. Providing a l
 ** As the root user, install podman on the Admin node: `zypper install podman`
 
 ===== Deploy a dnsmasq container for DNS or DNS+DHCP services
-* Create a directory to contain the dnsmasq installation and cd into it
+* Create a directory to contain the dnsmasq installation and cd into it, i.e. `sudo mkdir /opt/
 * Clone this repository: `git clone https://github.com/alexarnoldy/opensuse-dnsmasq-container.git; cd opensuse-dnsmasq-container`
 ** Populate the `dnsmasq_hosts` file with entries for the master(s) and worker nodes
 *** The default Terraform cluster designed for this project matches the following address scheme:
