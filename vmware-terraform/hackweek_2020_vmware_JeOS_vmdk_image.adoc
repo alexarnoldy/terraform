@@ -8,13 +8,17 @@ IMPORTANT: This document is based on a fairly narrow use case in which (currentl
 
 ## Current effort is: 
 * Download the VMware JeOS image to an ESXi host and create a VM with basic settings and Internet access. 
-* Install kernel-default, cloud-init and any other required software (i.e. CaaSP Node), and update all software. 
+* Install kernel-default, cloud-init and any other required software (i.e. CaaSP Management and Node), and update all software. 
 * Make it into a template. 
-* Deploy the Admin VM from the template and attach it to a network with access to the Internet. 
+* Deploy the Infrastructure VM from the template and attach it to a network with access to the Internet. 
+* Deploy the needed infrstructure software (i.e. Chrony, dnsmasq, NAT router)
+
+////
 ** Install CaaSP Management software and clone this repo into it. 
 ** Deploy DHCP/DNS/Chrony containers, as needed onto the Admin VM.
+////
 * Update the metadata.yaml and userdata.yaml cloud-init files.
-* Deploy (via clone) the master and worker nodes from the VM template, with cloud-init doing most of the customization.
+* Use TF to deploy (via clone) the admin, master and worker nodes from the VM template, with cloud-init doing most of the customization.
 * The hope is that this will be easier than the documented method of installing a SLES VM, as well as maintain consitency with the libvirt design and cloud-init compatibility.
 ## Fallback idea is to convert the OpenStack JeOS image to ESXi6 compatible vmdk and reuse the exact same cloud-init stuff in KVM and VMware.
 
@@ -106,17 +110,16 @@ TIP: If a DHCP server is not available on the network the VM is connected to, th
 ** When prompted that kernel-default conflicts with kernel-default-base, choose to uninstall kernel-default-base
 * Update the SLES software: `zypper update`
 * Power off the template VM: `poweroff`
-* Clone the template VM to a CaaSP Admin node
-** Select a name for the VM that indicates it will be the CaaSP Admin node (In this guide it will be named CaaSP-Admin-Node)
+* Clone the template VM to the Infrastructure node (In this guide it will be named CaaSP-Infra)
 * Select the `Thin Provision` virtual disk format
 * DO NOT power on the VM at this time
 * Select Finish
 
-NOTE: Another network adapter will need to be added to the Admin node before powering it on, later in the process
+NOTE: Another network adapter will need to be added to the Infrastructgure node before powering it on, later in the process
 
 * Power on the template VM and login as root
 ** Register the public cloud module: `SUSEConnect -p sle-module-public-cloud/15.1/x86_64`
-* Add the software that will be needed for the clsuter nodes: `zypper install -t pattern SUSE-CaaSP-Node`
+* Add the software that will be needed for the clsuter nodes: `zypper install -t pattern SUSE-CaaSP-Node SUSE-CaaSP-Management`
 * Install the cloud-init software: `zypper install cloud-init cloud-init-vmware-guestinfo`
 * *ONLY IF* the CaaSP cluster nodes will register with a different service than the one used by the VM template (this is not common), de-register the template now: `SUSEConnect -d; SUSEConnect --cleanup`
 * Clean out the identity of the template:
@@ -131,6 +134,10 @@ snapper delete $(snapper list | awk '/important=no/{print$1}')
 ----
 
 * Enable cloud-init: `systemctl enable cloud-init cloud-init-local cloud-config cloud-final`
+* Clear any instances of cloud-init: `sudo rm -rf /var/lib/cloud/*`
+
+NOTE: Use the previous two steps after booting the template VM to ensure cloud-init is enabled and to clear out any instances recorded in the last boot.
+
 * Power off the template VM: `poweroff`
 * Close the console and use vSphere Client to convert the VM into a template
 * Create a new Resource Pool (In this guide the Resource Pool will be called "CaaSP_RP")
@@ -141,11 +148,12 @@ NOTE: Skip this step if the desired private network already exists. These steps 
 
 * Select the ESXi host, then `Action`, `Add Networking...`
 * Select `Virtual Machine Port Group`, select an existing standard vSwitch that does not have vmnics attached to it, or create a new one that has no physical network adapters assigned to it
-* Provide a Network label (In this guide it will be caasp-network), but do not set a VLAN tag
+* Set a VLAN tag, if needed, and adjust the Network label to include that tag
+** Provide a Network label (In this guide it will be caasp-network-1) 
 
-==== Configure the Admin node 
+==== Configure the Infrastructure node 
 
-* Before powering on the Admin VM, edit its settings to add another VMXNET3 network interface attached to the appropriate VM network (i.e. caasp-network)
+* Before powering on the Infra VM, edit its settings to add another VMXNET3 network interface attached to the appropriate VM network (i.e. caasp-network-1)
 * Power on the Admin VM and login to the Admin node as root via the vSphere console or ssh
 * Add the software that will be needed for the Admin node: `zypper install -t pattern SUSE-CaaSP-Management`
 ** Optionally, add the NFS server software if the Admin node will provide NFS storage to the CaaSP cluster: `zypper install nfs-kernel-server`

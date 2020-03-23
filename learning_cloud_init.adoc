@@ -77,5 +77,14 @@ data "template_file" "admin_cloud_init_user_data" {
 ----
 * Use in cloud-init file with `${username}`
  
+==== Resetting cloud-init after booting an image:
+
+* Ensure all clout-init packages are installed: `sudo zypper install cloud-init`
+** Add `cloud-init-vmware-guestinfo` for VMs running on ESXi
+* Ensure cloud-init is enabled: `sudo systemctl enable cloud-init cloud-init-local cloud-config cloud-final`
+* Clear any instances of cloud-init: `sudo rm -rf /var/lib/cloud/*`
+
+
+
 
 // vim: set syntax=asciidoc:
