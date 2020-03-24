@@ -154,11 +154,11 @@ NOTE: Skip this step if the desired private network already exists. These steps 
 ==== Configure the Infrastructure node 
 
 * Before powering on the Infra VM, edit its settings to add another VMXNET3 network interface attached to the appropriate VM network (i.e. caasp-network-1)
-* Power on the Admin VM and login to the Admin node as root via the vSphere console or ssh
-* Add the software that will be needed for the Admin node: `zypper install -t pattern SUSE-CaaSP-Management`
-** Optionally, add the NFS server software if the Admin node will provide NFS storage to the CaaSP cluster: `zypper install nfs-kernel-server`
+* Power on the Infra VM and login to the Infra node as root via the vSphere console or ssh
+* Use `ip a` to verify which interface is the private network interface (In this guide it is eth1)
+* Use `yast lan` to add an IP address to the private network interface (In this guide it is 10.110.0.1/22)
 * Install Git: `zypper install git-core`
-* Set the hostname of the admin node, with the domain name that will be used for CaaSP cluster (In this guide it will be admin.caasp-cluster.local): 
+* Set the hostname of the Infra node, with the domain name that will be used for CaaSP cluster (In this guide it will be infra.caasp-cluster.local): 
 ----
 export HOSTNAME=
 ----
@@ -166,44 +166,51 @@ export HOSTNAME=
 hostnamectl set-hostname ${HOSTNAME}
 ----
 
-==== Optionally, configure the Admin node as a NAT router for the cluster network
-* If there is not already a NAT router available for the cluster network, follow the instructions in this document, https://github.com/alexarnoldy/caasp-cloud_config/blob/master/NAT_router_config.adoc, to configure the Admin node as the NAT router for the cluster network
+==== Optionally, configure the Infra node as a NAT router for the cluster network
+* If there is not already a NAT router available for the cluster network, follow the instructions in this document, https://github.com/alexarnoldy/caasp-cloud_config/blob/master/NAT_router_config.adoc, to configure the Infra node as the NAT router for the cluster network
 
-==== Optionally, create DHCP and/or DNS and/or NTP services on the Admin node
+==== Optionally, create DHCP and/or DNS and/or NTP services on the Infra node
 
 NOTE: Since dnsmasq doesn't provide DDNS services, using DHCP on the cluster network offers very limited value from a programtic perspective. Even dnsmasq's DNS services will be used primarily to consolidate the basic resolution needs of the cluster network.
 
 IMPORTANT: Reliable NTP services are needed for the CaaSP cluster. Providing a local NTP service, like the Chrony pod as described below, is highly recommeneded.
 
 * Podman is needed to deploy one or more of these services
-** As the root user, install podman on the Admin node: `zypper install podman`
+** As the root user, install podman on the Infra node: `zypper install podman`
 
 ===== Deploy a dnsmasq container for DNS or DNS+DHCP services
-* Create a directory to contain the dnsmasq installation and cd into it, i.e. `sudo mkdir /opt/
-* Clone this repository: `git clone https://github.com/alexarnoldy/opensuse-dnsmasq-container.git; cd opensuse-dnsmasq-container`
-** Populate the `dnsmasq_hosts` file with entries for the master(s) and worker nodes
-*** The default Terraform cluster designed for this project matches the following address scheme:
-**** Set this variable to the network portion of the subnet that will be used in the cluster network: `export NETWORK="10.110"`
+* Create a directory to contain the dnsmasq installation and cd into it, i.e. `sudo mkdir -p /opt/ && cd $_`
+* Clone this repository: `git clone https://github.com/alexarnoldy/opensuse-dnsmasq-container.git && cd opensuse-dnsmasq-container`
+** Populate the *dnsmasq_hosts* file with entries for the master(s) and worker nodes
+*** Set the NETWORK variable to the network portion of the subnet that will be used in the cluster network (In this guide it will be "10.110")
+
+IMPORTANT: If this infrastructure node is used to deploy multiple CaaSP clusters, the subnet, and thus the NETWORK variable will need to be different for each.
+
+----
+export NETWORK=""
+----
 ----
 cat <<EOF> dnsmasq_hosts
-${NETWORK}.2.0		master-0
-${NETWORK}.2.1		master-1
-${NETWORK}.2.3		master-3
-${NETWORK}.2.0		worker-0
-${NETWORK}.2.1		worker-1
-${NETWORK}.2.2		worker-2
-${NETWORK}.2.3		worker-3
+${NETWORK}.2.0		master-0.caasp-cluster.local
+${NETWORK}.2.1		master-1.caasp-cluster.local
+${NETWORK}.2.3		master-3.caasp-cluster.local
+${NETWORK}.2.0		worker-0.caasp-cluster.local
+${NETWORK}.2.1		worker-1.caasp-cluster.local
+${NETWORK}.2.2		worker-2.caasp-cluster.local
+${NETWORK}.2.3		worker-3.caasp-cluster.local
 EOF
 ----
 
 NOTE: In this guide the dnsmasq.conf file parameter `domain` will be `caasp-cluster.local` and the `interface` paramter will be `eth1`. Since DHCP is not used in this example, all lines that begin with `dhcp` will be commented out.
 
-* Follow the rest of the directions in the README.adoc
+* Follow the rest of the directions in the README.adoc file
+
+NOTE: When running the container *DNS_IP=* will be set to eth1's IP address (In this guide it is 10.110.0.1)
 
 ===== Deploy a Chrony container for NTP services
-* Create a directory to contain the Chrony installation and cd into it
-* Clone this repository: `git clone: https://github.com/alexarnoldy/opensuse-chrony-container.git`
-* Follow the directions in the README.adoc
+* Create a directory to contain the Chrony installation and cd into it, i.e. `sudo mkdir -p /opt/ && cd $_`
+* Clone this repository: `git clone https://github.com/alexarnoldy/opensuse-chrony-container.git && cd opensuse-chrony-container`
+* Follow the directions in the README.adoc, paying close attention to the *allow* line in the chrony.conf file, which should match the subnet for this CaaSP cluster
 
 
 
