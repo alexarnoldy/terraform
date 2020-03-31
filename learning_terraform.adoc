@@ -6,6 +6,7 @@ Based in part on: https://github.com/dmacvicar/terraform-provider-libvirt#downlo
 * `zypper refresh`
 * `sudo zypper install terraform-provider-libvirt`
 * `cp -p /usr/bin/terraform-provider-libvirt ~/.terraform.d/plugins/`
+** Can also download the rpm from https://software.opensuse.org/download/package?package=terraform-provider-libvirt&project=systemsmanagement%3Asumaform and install with zypper
 * Verify the provider is available: `terraform init`
 ** Should complete without error and include the phrase:
 ----
@@ -37,8 +38,11 @@ EOF
 * Apply the terraform plan: `terraform apply`
 * Remove the test: `terraform destroy`
 
-
-
+==== terraform.tfvars vs variables.tf
+* variables.tf is used to declare variables, (optionally) the type of data that can be used in them, and (optionally) set a default
+* terraform.tfvars is used to assign values to variables
+* If a variable is called out in terraform.tfvars, even if it is not assigned any value (i.e. "") it overrides the default value in variables.tf
+** The only way to have the default value in variables.tf be applied is to no include (or comment out) the variable in terraform.tfvars
 
 === To deploy to a remote instance of qemu:
 * Ensure the user on the remote node is in the libvirt group on that node
