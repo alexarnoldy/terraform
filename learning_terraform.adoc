@@ -120,5 +120,19 @@ authorized_keys = [
   - udevadm trigger
 ** Set up networking
 
+=== From 11/2020
+* Installing Terraform from a specific repo to stay on version 0.12.x:
+** Other repos on software.opensuse.org available with other versions
+----
+sudo zypper addrepo https://download.opensuse.org/repositories/systemsmanagement:sumaform/SLE_15_SP2/systemsmanagement:sumaform.repo
+sudo zypper refresh
+sudo zypper install terraform
+----
+* Setting up the terraform-provider-libvirt on SLES15SP2:
+----
+sudo zypper addrepo https://download.opensuse.org/repositories/systemsmanagement:terraform/SLE_15_SP2/systemsmanagement:terraform.repo
+sudo zypper refresh
+sudo zypper install terraform-provider-libvirt
+----
 
 // vim: set syntax=asciidoc:
