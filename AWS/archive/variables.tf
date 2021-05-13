@@ -45,7 +45,19 @@ variable "vpc_tags" {
   }
 }
 
-variable "instance_name_prefix" {
+#variable "instance_name_prefix" {
+#  description = "Name prefix for instances"
+#  type	      = string
+#  default     = "my-ec2-cluster"
+#}
+
+variable "small_name_prefix" {
+  description = "Name prefix for instances"
+  type	      = string
+  default     = "my-ec2-cluster"
+}
+
+variable "medium_name_prefix" {
   description = "Name prefix for instances"
   type	      = string
   default     = "my-ec2-cluster"
@@ -62,3 +74,13 @@ variable "instance_type" {
   type	      = string
   default     = "t2.micro"
 }
+
+variable "instance_type_map" {
+  description	= "Map of AMIs and instance types to create"
+  type		= map(string)
+  default	= {
+    instance-1	= "t2.small"
+    instance-2	= "t2.medium"
+    instance-3	= "t2.medium"
+  }
+}    

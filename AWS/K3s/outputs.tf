@@ -10,6 +10,10 @@ output "ec2_instance_public_ips" {
   value       = module.ec2_instances.public_ip
 }
 
+output "vpc_id" {
+  value		= module.vpc.vpc_id
+}
+
 #output "website_bucket_arn" {
 #  description = "ARN of the bucket"
 #  value       = module.website_s3_bucket.arn

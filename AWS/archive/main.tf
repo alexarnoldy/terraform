@@ -24,11 +24,10 @@ module "ec2_instances" {
   source  = "terraform-aws-modules/ec2-instance/aws"
   version = "2.12.0"
 
-  name           = var.instance_name_prefix
-  instance_count = 2
-
-  ami                    = var.instance_ami
-  instance_type          = var.instance_type
+  name           = var.small_name_prefix
+  instance_count = 0
+  ami                   = var.instance_ami
+  instance_type          = "t2.small"
   vpc_security_group_ids = [module.vpc.default_security_group_id]
   subnet_id              = module.vpc.public_subnets[0]
 
@@ -36,6 +35,10 @@ module "ec2_instances" {
     Terraform   = "true"
     Environment = "dev"
   }
+}
+
+module "ec2_medium" {
+  source  = "./modules/ec2_medium"
 }
 
 #module "website_s3_bucket" {
