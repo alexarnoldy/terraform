@@ -28,6 +28,7 @@ module "ec2_instances" {
   instance_count 	= var.instance_count
   ami                   = var.instance_ami
   instance_type         = var.instance_type
+#  key_name		= "rancher-server"
   key_name		= aws_key_pair.aarnoldy_laptop.id
   vpc_security_group_ids = [aws_security_group.K3s_sg.id]
   subnet_id             = module.vpc.public_subnets[0]
@@ -39,8 +40,8 @@ module "ec2_instances" {
 }
 
 resource "aws_key_pair" "aarnoldy_laptop" {
-  key_name   = "aarnoldy_laptop"
-  public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDXxkzrWJBzUnAxPX0ze+dzrCb0WMkpqQmGUnTqclrVFoPWduzr4W4KVUl1v7DTIrc0ccYHiWdKnrYvhst5E/szJTalKJjgEI6vtCDX/gN1VYOhCe9Qgxp1hSfNGNDSFOp2di1+N0A/XXlkkFqmz7B0d/ibgHnv+h+9vniKmXs7SW2GuuvpRoBaL38N4fkC5GHmLeIuPuwPCG2OVOHpAixr2obYm5QCl0n4mM77QlDpLtgh8ZD3xmOY1sRCGDvqafbZ0CuGfloApTBxxupDrU/XyLfXDNZR7wrxzw3Gom+oZR1pfKwXW/ym3/ko/Gfsex8AOTwPLFiaGynkT6OWgfnV aarnoldy@aarnoldy-laptop"
+  key_name   = var.ssh_authorized_keys
+  public_key = var.ssh_public_key
 }
 
 resource "aws_security_group" "K3s_sg" {
@@ -52,8 +53,16 @@ resource "aws_security_group" "K3s_sg" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
+#    cidr_blocks = var.my_public_ip
     cidr_blocks = ["0.0.0.0/0"]
-#    cidr_blocks = [data.aws_vpc.vpc.cidr_block}]
+  }
+
+  ingress {
+    from_port   = 6443
+    to_port     = 6443
+    protocol    = "tcp"
+#    cidr_blocks = var.my_public_ip
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
