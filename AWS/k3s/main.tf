@@ -28,8 +28,9 @@ module "ec2_instances" {
   instance_count 	= var.instance_count
   ami                   = var.instance_ami
   instance_type         = var.instance_type
+  key_name		= "aarnoldy_laptop"
 #  key_name		= "rancher-server"
-  key_name		= aws_key_pair.aarnoldy_laptop.id
+#  key_name		= aws_key_pair.aarnoldy_laptop.id
   vpc_security_group_ids = [aws_security_group.K3s_sg.id]
   subnet_id             = module.vpc.public_subnets[0]
 
@@ -39,10 +40,10 @@ module "ec2_instances" {
   }
 }
 
-resource "aws_key_pair" "aarnoldy_laptop" {
-  key_name   = var.ssh_authorized_keys
-  public_key = var.ssh_public_key
-}
+#resource "aws_key_pair" "aarnoldy_laptop" {
+#  key_name   = var.ssh_authorized_keys
+#  public_key = var.ssh_public_key
+#}
 
 resource "aws_security_group" "K3s_sg" {
   name        = "${var.instance_name_prefix}-sg"

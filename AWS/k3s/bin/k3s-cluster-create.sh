@@ -29,6 +29,7 @@ LCYAN='\033[1;36m'
 NC='\033[0m' # No Color
 EDGE_LOCATION=$1
 SSH_USER="ec2-user"
+CONFIG_FILE="./k3s_edge_sandbox.conf"
 
 
 ## Test for at least one argument provided with the command
@@ -55,22 +56,22 @@ done
 ## and the associated hostnames being the subsequent odd indices
 ## i.e. ${ALL_SERVERS[0]} is the IP of the first server and ${ALL_SERVERS[1]} is
 ## the hostname of the first server
-#ALL_SERVERS=($(getent hosts ${EDGE_LOCATION}-server-{0..2}))
-ALL_SERVERS=($(getent hosts | grep -iw ${EDGE_LOCATION} | grep -i ${DOMAIN_NAME} | grep -i server | sort -k 1,1))
+ALL_SERVERS=($(grep -iw ${EDGE_LOCATION} ${CONFIG_FILE} | grep -i ${DOMAIN_NAME} | grep -i server | sort -k 1,1))
+#ALL_SERVERS=($(getent hosts | grep -iw ${EDGE_LOCATION} | grep -i ${DOMAIN_NAME} | grep -i server | sort -k 1,1))
 
 
 
 ## FIRST_SERVER_HOSTNAME will used in the following test and later in the script
 FIRST_SERVER_HOSTNAME=${ALL_SERVERS[1]}
-## FIRST_SERVER_IP will be used later in the script
-#FIRST_SERVER_IP=${ALL_SERVERS[0]}
+VPC_CIDR=${ALL_SERVERS[0]}
+
 ## Test to see if the provided argument matches a defined edge location
 [ -z "${FIRST_SERVER_HOSTNAME}" ]  && echo -e "Edge location \"${LCYAN}${EDGE_LOCATION}${NC}\" is not defined." && exit
 
 
 ## Discover up to 25 agent nodes to be used in this edge location. Adjust above 25 as needed.
-#ALL_AGENTS=($(getent hosts ${EDGE_LOCATION}-agent-{0..25}))
-ALL_AGENTS=($(getent hosts | grep -iw ${EDGE_LOCATION} | grep -i ${DOMAIN_NAME} | grep -i agent | sort -k 1,1))
+ALL_AGENTS=($(grep -iw ${EDGE_LOCATION} ${CONFIG_FILE} | grep -i ${DOMAIN_NAME} | grep -i agent | sort -k 1,1))
+#ALL_AGENTS=($(getent hosts | grep -iw ${EDGE_LOCATION} | grep -i ${DOMAIN_NAME} | grep -i agent | sort -k 1,1))
 
 
 ## Establish the last index in the arrays
@@ -114,7 +115,7 @@ ${SERVER_INSTANCE_TYPE[0]}
 #${AGENT_ALLOCATION[0]}
 #${AGENT_ALLOCATION[1]}
 edge_location = "${EDGE_LOCATION}"
-#cidr_mapping = {${EDGE_LOCATION} = "${SUBNET}"}
+#vpc_cidr = ${VPC_CIDR}
 cluster_labels = {${CLUSTER_LABELS}}
 EOF
 
@@ -125,7 +126,14 @@ echo ${ALL_SERVER_PUBLIC_IPS[@]}
 FIRST_SERVER_PUBLIC_IP=$(echo ${ALL_SERVER_PUBLIC_IPS[0]})
 echo ${FIRST_SERVER_PUBLIC_IP}
 
+ALL_SERVER_PRIVATE_IPS=($(terraform output -state=state/${EDGE_LOCATION}/${EDGE_LOCATION}.tfstate ec2_instance_private_ips | egrep -v "\[|\]" | awk -F\, '{print$1}' | sed 's/\"//g'))
+echo ${ALL_SERVER_PRIVATE_IPS[@]}
+FIRST_SERVER_PRIVATE_IP=$(echo ${ALL_SERVER_PRIVATE_IPS[0]})
+
 mkdir -p ~/.kube/
+
+## quick way to install first server:
+# K3s_VERSION="v1.20.4+k3s1"; ssh ec2-user@54.153.109.143 sh -c "K3s_VERSION="v1.20.4+k3s1" ; curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION='${K3s_VERSION}' INSTALL_K3S_EXEC='server --cluster-init --write-kubeconfig-mode=644' sh -s -"
 
 
 ## Ensure the server node is updated and ready before installing K3s 
@@ -141,7 +149,7 @@ until nc -zv ${FIRST_SERVER_PUBLIC_IP} 22 &> /dev/null; do echo "Waiting until $
 echo "Waiting for someone who truly gets me..."
 sleep 10
 
-
+exit
 
 ## Remove a previous config file if it exists
 rm -f ${HOME}/.kube/kubeconfig-${EDGE_LOCATION}
@@ -163,18 +171,17 @@ until kubectl get deployment -n kube-system coredns &> /dev/null; do echo "Waiti
 sleep 5
 kubectl -n kube-system wait --for=condition=available --timeout=600s deployment/coredns
 
-exit
 
 ## Join the remaining two server nodes to the cluster
-for INDEX in 2 4; do 
-#for INDEX in $(seq 0 2 ${FINAL_SERVER_INDEX}); do 
-	k3sup join --ip ${ALL_SERVERS[INDEX]} --server --server-ip ${FIRST_SERVER_IP} --sudo --user ${SSH_USER} 
+for INDEX in 1 2; do 
+	k3sup join --ip ${ALL_SERVER_PUBLIC_IPS[INDEX]} --server --server-ip ${FIRST_SERVER_PRIVATE_IP} --sudo --user ${SSH_USER} 
 ## --k3s-channel doesn't work with k3sup v0.9.6	
 #	k3sup join --ip ${ALL_SERVERS[INDEX]} --server --server-ip ${FIRST_SERVER_IP} --sudo --user ${SSH_USER} --k3s-channel stable
 	sleep 5
 done
 
 
+exit
 
 ## Join all agent nodes to the cluster
 for INDEX in $(seq 0 2 ${FINAL_AGENT_INDEX}); do 
