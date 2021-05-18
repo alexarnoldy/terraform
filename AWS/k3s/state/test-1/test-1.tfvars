@@ -1,4 +1,4 @@
-instance_count = 4
+instance_count = 2
 instance_type="t2.small"
 #
 #k3s_agents = 0

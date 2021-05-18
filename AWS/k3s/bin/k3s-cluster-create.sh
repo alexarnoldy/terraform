@@ -30,6 +30,7 @@ NC='\033[0m' # No Color
 EDGE_LOCATION=$1
 SSH_USER="ec2-user"
 CONFIG_FILE="./k3s_edge_sandbox.conf"
+INSTALLED_K3s_VERSION="v1.20.4+k3s1"
 
 
 ## Test for at least one argument provided with the command
@@ -56,7 +57,7 @@ done
 ## and the associated hostnames being the subsequent odd indices
 ## i.e. ${ALL_SERVERS[0]} is the IP of the first server and ${ALL_SERVERS[1]} is
 ## the hostname of the first server
-ALL_SERVERS=($(grep -iw ${EDGE_LOCATION} ${CONFIG_FILE} | grep -i ${DOMAIN_NAME} | grep -i server | sort -k 1,1))
+ALL_SERVERS=($(grep -iw ${EDGE_LOCATION} ${CONFIG_FILE} | grep -i ${DOMAIN_NAME} | grep -i server | awk -F# '{print$1}' | sort -k 1,1))
 #ALL_SERVERS=($(getent hosts | grep -iw ${EDGE_LOCATION} | grep -i ${DOMAIN_NAME} | grep -i server | sort -k 1,1))
 
 
@@ -70,7 +71,7 @@ VPC_CIDR=${ALL_SERVERS[0]}
 
 
 ## Discover up to 25 agent nodes to be used in this edge location. Adjust above 25 as needed.
-ALL_AGENTS=($(grep -iw ${EDGE_LOCATION} ${CONFIG_FILE} | grep -i ${DOMAIN_NAME} | grep -i agent | sort -k 1,1))
+ALL_AGENTS=($(grep -iw ${EDGE_LOCATION} ${CONFIG_FILE} | grep -i ${DOMAIN_NAME} | grep -i agent | awk -F# '{print$1}' | sort -k 1,1))
 #ALL_AGENTS=($(getent hosts | grep -iw ${EDGE_LOCATION} | grep -i ${DOMAIN_NAME} | grep -i agent | sort -k 1,1))
 
 
@@ -122,12 +123,12 @@ EOF
 terraform apply -auto-approve --state=state/${EDGE_LOCATION}/${EDGE_LOCATION}.tfstate -var-file=terraform.tfvars -var-file=state/${EDGE_LOCATION}/${EDGE_LOCATION}.tfvars
 
 ALL_SERVER_PUBLIC_IPS=($(terraform output -state=state/${EDGE_LOCATION}/${EDGE_LOCATION}.tfstate ec2_instance_public_ips | egrep -v "\[|\]" | awk -F\, '{print$1}' | sed 's/\"//g'))
-echo ${ALL_SERVER_PUBLIC_IPS[@]}
+#echo ${ALL_SERVER_PUBLIC_IPS[@]}
 FIRST_SERVER_PUBLIC_IP=$(echo ${ALL_SERVER_PUBLIC_IPS[0]})
-echo ${FIRST_SERVER_PUBLIC_IP}
+#echo ${FIRST_SERVER_PUBLIC_IP}
 
 ALL_SERVER_PRIVATE_IPS=($(terraform output -state=state/${EDGE_LOCATION}/${EDGE_LOCATION}.tfstate ec2_instance_private_ips | egrep -v "\[|\]" | awk -F\, '{print$1}' | sed 's/\"//g'))
-echo ${ALL_SERVER_PRIVATE_IPS[@]}
+#echo ${ALL_SERVER_PRIVATE_IPS[@]}
 FIRST_SERVER_PRIVATE_IP=$(echo ${ALL_SERVER_PRIVATE_IPS[0]})
 
 mkdir -p ~/.kube/
@@ -147,38 +148,55 @@ ssh-keygen -q -R ${FIRST_SERVER_PUBLIC_IP} -f ${HOME}/.ssh/known_hosts &> /dev/n
 ## Test for sshd to come online after the reboot, then wait ten seconds more for the node to finish booting
 until nc -zv ${FIRST_SERVER_PUBLIC_IP} 22 &> /dev/null; do echo "Waiting until ${FIRST_SERVER_HOSTNAME} finishes rebooting..." && sleep 5; done
 echo "Waiting for someone who truly gets me..."
-sleep 10
+#sleep 10
 
-exit
 
 ## Remove a previous config file if it exists
 rm -f ${HOME}/.kube/kubeconfig-${EDGE_LOCATION}
 
 ## Test to see if more than one server is specified
-[ ${#ALL_SERVERS[@]} -gt 2 ] && CLUSTER="--cluster" || CLUSTER=""
+[ ${#ALL_SERVERS[@]} -gt 2 ] && CLUSTER="--cluster-init" || CLUSTER=""
+
+## Install first server node
+K3s_VERSION="v1.20.4+k3s1"; ssh -oStrictHostKeyChecking=no ${SSH_USER}@${FIRST_SERVER_PUBLIC_IP} "K3s_VERSION="v1.20.4+k3s1" ; curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION='${K3s_VERSION}' INSTALL_K3S_EXEC='server ${CLUSTER} --write-kubeconfig-mode=644' sh -s -"
+
+## Need to add --tls-san ${FIRST_SERVER_PUBLIC_IP} for this to work correctly. Then it will fail if the first server gets a new public IP address
+#scp ${SSH_USER}@${FIRST_SERVER_PUBLIC_IP}:/etc/rancher/k3s/k3s.yaml ${HOME}/.kube/kubeconfig-${EDGE_LOCATION}
+
+
 
 ## Use k3sup to install the first server node
-k3sup install --ip ${FIRST_SERVER_PUBLIC_IP} ${CLUSTER} --sudo --user ${SSH_USER} --local-path ${HOME}/.kube/kubeconfig-${EDGE_LOCATION} --context k3s-${EDGE_LOCATION}
+#k3sup install --ip ${FIRST_SERVER_PUBLIC_IP} ${CLUSTER} --sudo --user ${SSH_USER} --local-path ${HOME}/.kube/kubeconfig-${EDGE_LOCATION} --context k3s-${EDGE_LOCATION}
 ## --k3s-channel doesn't work with k3sup v0.9.6	
 #k3sup install --ip ${FIRST_SERVER_IP} ${CLUSTER} --sudo --user ${SSH_USER} --k3s-channel stable  --local-path ${HOME}/.kube/kubeconfig-${EDGE_LOCATION} --context k3s-${EDGE_LOCATION}
 
 
 
 ## Wait until the K3s server node is ready before joining the rest of the nodes
-export KUBECONFIG=${HOME}/.kube/kubeconfig-${EDGE_LOCATION}
-kubectl config set-context k3s-${EDGE_LOCATION}
-until kubectl get deployment -n kube-system coredns &> /dev/null; do echo "Waiting for the Kubernetes API server to respond..." && sleep 10; done
+#export KUBECONFIG=${HOME}/.kube/kubeconfig-${EDGE_LOCATION}
+#kubectl config set-context k3s-${EDGE_LOCATION}
+ssh -q ${SSH_USER}@${FIRST_SERVER_PUBLIC_IP} "until kubectl get deployment -n kube-system coredns &> /dev/null; do echo "Waiting for the Kubernetes API server to respond..." && sleep 10; done"
 sleep 5
-kubectl -n kube-system wait --for=condition=available --timeout=600s deployment/coredns
-
+ssh -q ${SSH_USER}@${FIRST_SERVER_PUBLIC_IP} "kubectl -n kube-system wait --for=condition=available --timeout=600s deployment/coredns"
 
 ## Join the remaining two server nodes to the cluster
+	NODE_TOKEN=$(ssh ${SSH_USER}@${FIRST_SERVER_PUBLIC_IP} sudo cat /var/lib/rancher/k3s/server/node-token)
+
+
 for INDEX in 1 2; do 
-	k3sup join --ip ${ALL_SERVER_PUBLIC_IPS[INDEX]} --server --server-ip ${FIRST_SERVER_PRIVATE_IP} --sudo --user ${SSH_USER} 
-## --k3s-channel doesn't work with k3sup v0.9.6	
-#	k3sup join --ip ${ALL_SERVERS[INDEX]} --server --server-ip ${FIRST_SERVER_IP} --sudo --user ${SSH_USER} --k3s-channel stable
+cat <<EOF> /tmp/${ALL_SERVER_PUBLIC_IPS[INDEX]}.sh
+FIRST_SERVER_PRIVATE_IP=${FIRST_SERVER_PRIVATE_IP};
+NODE_TOKEN=$(ssh ${SSH_USER}@${FIRST_SERVER_PUBLIC_IP} sudo cat /var/lib/rancher/k3s/server/node-token)
+K3s_VERSION=${INSTALLED_K3s_VERSION};
+curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=${K3s_VERSION} K3S_URL=https://${FIRST_SERVER_PRIVATE_IP}:6443 K3S_TOKEN=${NODE_TOKEN} K3S_KUBECONFIG_MODE="644" INSTALL_K3S_EXEC='server' sh -
+EOF
+	scp -q -o StrictHostKeyChecking=no /tmp/${ALL_SERVER_PUBLIC_IPS[INDEX]}.sh ${SSH_USER}@${ALL_SERVER_PUBLIC_IPS[INDEX]}:~/ 
+	ssh -q -o StrictHostKeyChecking=no ${SSH_USER}@${ALL_SERVER_PUBLIC_IPS[INDEX]} "bash ~/${ALL_SERVER_PUBLIC_IPS[INDEX]}.sh"
 	sleep 5
+	rm /tmp/${ALL_SERVER_PUBLIC_IPS[INDEX]}.sh
 done
+
+
 
 
 exit
