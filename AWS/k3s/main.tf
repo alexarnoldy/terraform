@@ -1,5 +1,15 @@
 # Terraform configuration
 
+terraform {
+  required_providers {
+    rancher2 = {
+      source = "rancher/rancher2"
+#      version = "1.14.0"
+    }
+  }
+}
+
+
 provider "aws" {
   region = "us-west-1"
 }
@@ -94,6 +104,28 @@ resource "aws_security_group" "K3s_sg" {
   }
 
 
+}
+
+#module "rancher_cluster" {
+#  source = "./modules/rancher2"
+#}
+
+provider "rancher2" {
+  alias      = "rancher-demo"
+  api_url    = "https://rancher-demo.susealliances.com/v3"
+}
+resource "rancher2_cluster" "k3s-cluster-instance" {
+  provider = "rancher2.rancher-demo"
+  name = "k3s-${var.edge_location}"
+  description = "K3s imported cluster"
+  labels = var.cluster_labels
+#  labels = tomap({"location" = "north", "customer" = "BigMoney"})
+}
+
+data "rancher2_cluster" "k3s-cluster" {
+  provider = rancher2.rancher-demo
+  name = "k3s-${var.edge_location}"
+  depends_on = [rancher2_cluster.k3s-cluster-instance]
 }
 
 #module "website_s3_bucket" {

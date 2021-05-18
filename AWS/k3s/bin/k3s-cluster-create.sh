@@ -201,13 +201,14 @@ done
 
 exit
 
+#### Disabled until I can separate the provisiong of server and agent nodes in ec2
 ## Join all agent nodes to the cluster
-for INDEX in $(seq 0 2 ${FINAL_AGENT_INDEX}); do 
-	k3sup join --ip ${ALL_AGENTS[INDEX]} --server-ip ${FIRST_SERVER_IP} --sudo --user ${SSH_USER} 
+#for INDEX in $(seq 0 2 ${FINAL_AGENT_INDEX}); do 
+#	k3sup join --ip ${ALL_AGENTS[INDEX]} --server-ip ${FIRST_SERVER_IP} --sudo --user ${SSH_USER} 
 ## --k3s-channel doesn't work with k3sup v0.9.6	
 #	k3sup join --ip ${ALL_AGENTS[INDEX]} --server-ip ${FIRST_SERVER_IP} --sudo --user ${SSH_USER} --k3s-channel stable
-	sleep 5
-done
+#	sleep 5
+#done
 
 
 

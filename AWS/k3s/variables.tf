@@ -80,6 +80,18 @@ variable "ssh_public_key" {
   default     = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDXxkzrWJBzUnAxPX0ze+dzrCb0WMkpqQmGUnTqclrVFoPWduzr4W4KVUl1v7DTIrc0ccYHiWdKnrYvhst5E/szJTalKJjgEI6vtCDX/gN1VYOhCe9Qgxp1hSfNGNDSFOp2di1+N0A/XXlkkFqmz7B0d/ibgHnv+h+9vniKmXs7SW2GuuvpRoBaL38N4fkC5GHmLeIuPuwPCG2OVOHpAixr2obYm5QCl0n4mM77QlDpLtgh8ZD3xmOY1sRCGDvqafbZ0CuGfloApTBxxupDrU/XyLfXDNZR7wrxzw3Gom+oZR1pfKwXW/ym3/ko/Gfsex8AOTwPLFiaGynkT6OWgfnV aarnoldy@aarnoldy-laptop"
 }
 
+variable "cluster_labels" {
+  type        = map
+  description = "Labels to be applied to imported cluster object in Rancher"
+  default     = {
+    "status" = "standby"
+  }
+}
+
+variable "edge_location" {
+  description = "Identifier to make all your resources unique and avoid clashes with other users of this terraform project"
+}
+
 #variable "my_public_ip" {
 #  description	= "Allow restricting security group to only allow SSH from one system. Must include CIDR notation"
 #  type		= list
