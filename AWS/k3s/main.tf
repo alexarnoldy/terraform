@@ -18,7 +18,7 @@ module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "2.21.0"
 
-  name = var.vpc_name
+  name = var.edge_location
   cidr = var.vpc_cidr
 
   azs             = var.vpc_azs
@@ -34,10 +34,10 @@ module "ec2_instances" {
   source  = "terraform-aws-modules/ec2-instance/aws"
   version = "2.12.0"
 
-  name           	= var.instance_name_prefix
-  instance_count 	= var.instance_count
+  name           	= var.edge_location
+  instance_count 	= var.num_servers
   ami                   = var.instance_ami
-  instance_type         = var.instance_type
+  instance_type         = var.server_instance_type
   key_name		= "aarnoldy_laptop"
 #  key_name		= "rancher-server"
 #  key_name		= aws_key_pair.aarnoldy_laptop.id
@@ -112,10 +112,11 @@ resource "aws_security_group" "K3s_sg" {
 
 provider "rancher2" {
   alias      = "rancher-demo"
-  api_url    = "https://rancher-demo.susealliances.com/v3"
+#  api_url    = "https://rancher-demo.susealliances.com/v3"
 }
+
 resource "rancher2_cluster" "k3s-cluster-instance" {
-  provider = "rancher2.rancher-demo"
+  provider = rancher2.rancher-demo
   name = "k3s-${var.edge_location}"
   description = "K3s imported cluster"
   labels = var.cluster_labels

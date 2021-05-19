@@ -51,10 +51,14 @@ variable "instance_name_prefix" {
   default     = "my-ec2-cluster"
 }
 
-variable "instance_count" {
-  description = "Number of instances to create"
+variable "num_servers" {
+  description = "Number of server instances to create"
   type	      = number
-#  default     = 3
+}
+
+variable "num_agents" {
+  description = "Number of agent instances to create"
+  type	      = number
 }
 
 variable "instance_ami" {
@@ -63,7 +67,13 @@ variable "instance_ami" {
   default     = "ami-05c558c169cfe8d99"
 }
  
-variable "instance_type" {
+variable "server_instance_type" {
+  description = "Type for the instance"
+  type	      = string
+  default     = "t2.small"
+}
+
+variable "agent_instance_type" {
   description = "Type for the instance"
   type	      = string
   default     = "t2.small"
