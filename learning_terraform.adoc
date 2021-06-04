@@ -101,6 +101,35 @@ authorized_keys = [
 "<public key>", "<public key>", "<public key>"
 ]
 
+==== Interesting remote_exec provisioner (inside aws_instance resource):
+
+----
+  provisioner "remote-exec" {
+    inline = [
+      "sudo <command> && sudo <another command>",
+      "<more commands",
+      "<final command, note no comma here>"
+    ]
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = file("~/.ssh/id_rsa")  #great use of file() function
+      host        = self.public_ip 
+      #self.public_ip is available b/c the instance has "associate_public_ip_address = true"
+      #seems like it is only available inside this aws_instance resource
+    }
+----
+* Instance was created with the existing public key injected with:
+----
+resource "aws_key_pair" "webserver-key" {
+  key_name   = "webserver-key"
+  public_key = file("~/.ssh/id_rsa.pub")
+}
+----
+* and (inside the aws_instance):
+----
+  key_name                    = aws_key_pair.webserver-key.key_name
+----
 
 ==== Working with VMware (especially after learning on libvirt)
 * Seems obvious, but need to have the infrastucture to manage IPs and route on the target network.
