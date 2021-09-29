@@ -1,0 +1,27 @@
+.Uses an S3 backend to maintain state files
+
+* If needed, use aws cli to create the bucket:
+----
+REGION=
+UNIQUE_BUCKET_NAME=
+----
+----
+aws s3api create-bucket --bucket ${UNIQUE_BUCKET_NAME} --region ${REGION} --create-bucket-configuration LocationConstraint=${REGION}
+----
+
+.Initialize the environment to save this specific state:
+----
+CLUSTER_NAME=
+----
+----
+terraform init -backend-config=key=${CLUSTER_NAME}-terraform.tfstate
+----
+
+.Can use a different cluster name with every terraform apply and delete to keep clusters separate:
+----
+terraform apply -var=cluster_name1=${CLUSTER_NAME}
+----
+
+----
+terraform delete -var=cluster_name1=${CLUSTER_NAME}
+----
