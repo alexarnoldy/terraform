@@ -1,3 +1,12 @@
+.AWS profile has been disabled in favor of passing credentials through environmental variables
+* Set the variables AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_DEFAULT_REGION:
+----
+export AWS_ACCESS_KEY_ID=""
+export AWS_SECRET_ACCESS_KEY=""
+export AWS_DEFAULT_REGION=""
+----
+* Alternately, use the aws cli to create a profile, uncomment the profile section in provider.tf, and refer to the profile in variables.tf
+
 .Uses an S3 backend to maintain state files
 
 * If needed, use aws cli to create the bucket:
