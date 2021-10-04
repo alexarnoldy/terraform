@@ -57,3 +57,5 @@ spec:
   selector:
     app: nginx
   type: LoadBalancer
+
+## Test with curl to port 8080 on the assigned load balancer IP address
