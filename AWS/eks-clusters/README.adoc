@@ -26,11 +26,13 @@ CLUSTER_NAME=
 terraform init -backend-config=key=${CLUSTER_NAME}-terraform.tfstate
 ----
 
-.Can use a different cluster name with every terraform apply and delete to keep clusters separate:
+.Can use a different cluster name with every terraform apply and destroy to keep clusters separate:
 ----
 terraform apply -var=cluster_name1=${CLUSTER_NAME}
 ----
 
 ----
-terraform delete -var=cluster_name1=${CLUSTER_NAME}
+terraform destroy -var=cluster_name1=${CLUSTER_NAME}
 ----
+
+IMPORTANT: Switching between clusters requires a `terraform init`, as shown above, before running `terraform apply` or `terraform destroy`
