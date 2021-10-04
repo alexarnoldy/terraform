@@ -131,6 +131,12 @@ resource "aws_key_pair" "webserver-key" {
   key_name                    = aws_key_pair.webserver-key.key_name
 ----
 
+==== Arithmetic Operators
+* Pretty straight foward, but may need to put expresion inside ()'s:
+----
+instance_count = (var.num_instances - 1)
+----
+
 ==== Working with VMware (especially after learning on libvirt)
 * Seems obvious, but need to have the infrastucture to manage IPs and route on the target network.
 
