@@ -18,9 +18,9 @@ UNIQUE_BUCKET_NAME=
 aws s3api create-bucket --bucket ${UNIQUE_BUCKET_NAME} --region ${REGION} --create-bucket-configuration LocationConstraint=${REGION}
 ----
 
-## The environment must be initialized to save this specific state before applying a configuration:
+## The environment must be initialized to save this specific state configuration before running `terraform apply`
 
-NOTE: This design allows for using a different cluster name with every terraform apply and destroy to keep clusters separate.
+NOTE: This design allows for creating and maintaining different clusters with the same code. Each cluster must have a different name.
 
 ----
 CLUSTER_NAME=
