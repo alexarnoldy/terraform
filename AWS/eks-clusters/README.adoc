@@ -7,7 +7,7 @@ export AWS_DEFAULT_REGION=""
 ----
 * Alternately, use the aws cli to create a profile, uncomment the profile section in provider.tf, and refer to the profile in variables.tf
 
-.Uses an S3 backend to maintain state files
+## This environment uses an S3 backend to maintain state files
 
 * If needed, use aws cli to create the bucket:
 ----
@@ -18,7 +18,10 @@ UNIQUE_BUCKET_NAME=
 aws s3api create-bucket --bucket ${UNIQUE_BUCKET_NAME} --region ${REGION} --create-bucket-configuration LocationConstraint=${REGION}
 ----
 
-.Initialize the environment to save this specific state:
+## The environment must be initialized to save this specific state before applying a configuration:
+
+NOTE: This design allows for using a different cluster name with every terraform apply and destroy to keep clusters separate.
+
 ----
 CLUSTER_NAME=
 ----
@@ -26,13 +29,13 @@ CLUSTER_NAME=
 terraform init -backend-config=key=${CLUSTER_NAME}-terraform.tfstate
 ----
 
-.Can use a different cluster name with every terraform apply and destroy to keep clusters separate:
 ----
 terraform apply -var=cluster_name1=${CLUSTER_NAME}
 ----
 
+* When finished, destroy the cluster:
 ----
 terraform destroy -var=cluster_name1=${CLUSTER_NAME}
 ----
 
-IMPORTANT: Switching between clusters requires a `terraform init`, as shown above, before running `terraform apply` or `terraform destroy`
+IMPORTANT: Switching between clusters requires setting the `CLUSTER_NAME` varialbe and running `terraform init`, as shown above, before running `terraform apply` or `terraform destroy`
