@@ -1,3 +1,6 @@
 .terraform
 terraform.d
 terraform.tfstate
+./AWS/eks-clusters/.terraform
+./terraform-SLE15SP1/.terraform
+./vmware-terraform/state

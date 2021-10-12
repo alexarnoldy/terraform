@@ -1,0 +1,35 @@
+First server:
+
+resource "random_password" "join_token" {
+  length = 32
+  special = true
+  override_special = "_%@"
+}
+
+resource "local_file" "first_server_script" {
+  filename = "first_server_script"
+  content = templatefile("template-first_server_script.tpl",
+    {
+#         first_server_private_ip = module.ec2_first_server_instance.private_ip
+         join_token = random_password.join_token.result
+    })
+}
+
+Template file:
+
+K3s_VERSION="v1.20.4+k3s1" ; curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION='${K3s_VERSION}' K3S_TOKEN=${join_token} INSTALL_K3S_EXEC='server ${CLUSTER####Need logic here for server count#####} --write-kubeconfig-mode=644' sh -s -"
+
+Agents:
+
+resource "local_file" "first_server_script" {
+  filename = "first_server_script"
+  content = templatefile("template-first_server_script.tpl",
+    {
+#         first_server_private_ip = module.ec2_first_server_instance.private_ip
+         join_token = random_password.join_token.result
+    })
+}
+
+ Template file:
+
+curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=v1.20.4+k3s1 K3S_URL=https://${first_server_private_ip}:6443 K3S_TOKEN=${join_token} K3S_KUBECONFIG_MODE="644" sh -
