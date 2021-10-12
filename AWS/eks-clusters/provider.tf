@@ -12,9 +12,9 @@ terraform {
   }
 
   backend "s3" {
-    bucket = "23552-susealliances-com" # This should match the unique name of the bucket you create as specified in the README steps.
-#    key = "rancher-managed-eks-clusters/terraform.tfstate"
-    region = "us-west-1"
+#    bucket = "" # This should match the unique name of the bucket you create as specified in the README steps.
+#    key = ""
+#    region = ""
     encrypt = true
   }
 }

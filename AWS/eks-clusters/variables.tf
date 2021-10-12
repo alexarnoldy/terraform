@@ -22,8 +22,3 @@ variable "cluster_name1" {
   type = string
 }
 
-#variable "cluster_name2" {
-#  description = "EKS cluster name"
-#  default = "alpha"
-#  type = string
-#}

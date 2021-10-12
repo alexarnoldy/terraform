@@ -9,28 +9,38 @@ export AWS_DEFAULT_REGION=""
 
 ## This environment uses an S3 backend to maintain state files
 
-* If needed, use aws cli to create the bucket:
+.If needed, use aws cli to create the bucket:
+
+* Set the environmental variables below:
 ----
-REGION=
-UNIQUE_BUCKET_NAME=
+UNIQUE_BUCKET_NAME=""
+REGION=""
 ----
 ----
 aws s3api create-bucket --bucket ${UNIQUE_BUCKET_NAME} --region ${REGION} --create-bucket-configuration LocationConstraint=${REGION}
+----
+
+* Use the following command to list all buckets you have access to:
+----
+aws s3api list-buckets --query "Buckets[].Name" --output table --no-cli-pager
 ----
 
 ## The environment must be initialized to save this specific state configuration before running `terraform apply`
 
 NOTE: This design allows for creating and maintaining different clusters with the same code. Each cluster must have a different name.
 
+* Set the environmental variables below:
 ----
-CLUSTER_NAME=
+CLUSTER_NAME=""
+UNIQUE_BUCKET_NAME=""
+REGION=""
 ----
 ----
-terraform init -backend-config=key=${CLUSTER_NAME}-terraform.tfstate
+terraform init -backend-config=key="${CLUSTER_NAME}-terraform.tfstate" -backend-config=bucket="${UNIQUE_BUCKET_NAME}" -backend-config=region="${REGION}"
 ----
 
 ----
-terraform apply -var=cluster_name1=${CLUSTER_NAME}
+terraform apply -var=cluster_name1=${CLUSTER_NAME} 
 ----
 
 * When finished, destroy the cluster:
@@ -38,4 +48,4 @@ terraform apply -var=cluster_name1=${CLUSTER_NAME}
 terraform destroy -var=cluster_name1=${CLUSTER_NAME}
 ----
 
-IMPORTANT: Switching between clusters requires setting the `CLUSTER_NAME` varialbe and running `terraform init`, as shown above, before running `terraform apply` or `terraform destroy`
+IMPORTANT: Switching between clusters requires setting the `CLUSTER_NAME` variable and running `terraform init`, as shown above, before running `terraform apply` or `terraform destroy`
