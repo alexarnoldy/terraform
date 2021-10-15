@@ -40,12 +40,12 @@ terraform init -backend-config=key="${CLUSTER_NAME}-terraform.tfstate" -backend-
 ----
 
 ----
-terraform apply -var=cluster_name1=${CLUSTER_NAME} 
+terraform apply -var=cluster_name1=${CLUSTER_NAME} -var=region=${REGION}
 ----
 
 * When finished, destroy the cluster:
 ----
-terraform destroy -var=cluster_name1=${CLUSTER_NAME}
+terraform destroy -var=cluster_name1=${CLUSTER_NAME} -var=region=${REGION}
 ----
 
 IMPORTANT: Switching between clusters requires setting the `CLUSTER_NAME` variable and running `terraform init`, as shown above, before running `terraform apply` or `terraform destroy`
