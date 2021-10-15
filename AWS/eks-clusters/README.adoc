@@ -1,3 +1,6 @@
+.Requires Kubergrunt to gather the OIDC information for the tokens Kubernetes will create
+* https://github.com/gruntwork-io/kubergrunt
+
 .AWS profile has been disabled in favor of passing credentials through environmental variables
 * Set the variables AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_DEFAULT_REGION:
 ----
@@ -36,7 +39,7 @@ UNIQUE_BUCKET_NAME=""
 REGION=""
 ----
 ----
-terraform init -backend-config=key="${CLUSTER_NAME}-terraform.tfstate" -backend-config=bucket="${UNIQUE_BUCKET_NAME}" -backend-config=region="${REGION}"
+rm .terraform/terraform.tfstate; terraform init -backend-config=key="${CLUSTER_NAME}-terraform.tfstate" -backend-config=bucket="${UNIQUE_BUCKET_NAME}" -backend-config=region="${REGION}"
 ----
 
 ----
