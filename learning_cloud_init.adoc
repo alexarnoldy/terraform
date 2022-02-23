@@ -1,7 +1,7 @@
 
 == Cloud Init 
 
-==== cloud-init for Harvester seems to run differently. Had many issues with runcmd working correctly. Doesn't seem to like strings, only lists.
+### cloud-init for Harvester seems to run differently. Had many issues with runcmd working correctly. Doesn't seem to like strings, only lists.
 * Working with variables in runcmd lists is difficult since it populates the script with each list item enclosed in single quotes.
 * Work around I ended up with was running each item under /bin/sh (-x is debug mode to print out the commands as they are run):
 
@@ -11,7 +11,7 @@ runcmd:
   - [ sh, -xc, 'export K3s_VERSION=v1.21.6+k3s1; curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=${K3s_VERSION} INSTALL_K3S_EXEC="server --write-kubeconfig-mode=644" sh -s - ' ]
 ----
  
-==== Review module execution order: /etc/cloud/cloud.cfg
+### Review module execution order: /etc/cloud/cloud.cfg
 * Good, basic explanation: https://stackoverflow.com/questions/34095839/cloud-init-what-is-the-execution-order-of-cloud-config-directives 
 * bootcmd (and possibly all cloud_init_modules) run on every boot
 * Seems like the cloud_config_modules and cloud_final_modules only run on first boot
@@ -38,7 +38,7 @@ cloud_final_modules:
 
 IMPORTANT: To get the desired effect of 1)update software and kernel, 2) reboot, 3)run cluster configuration script *as* *user* *sles*; had to a)use write-files to put deploy_cluster.sh and recover_deployment.sh in /tmp and in /root, respectively (recover_deployment.sh is basically just one line: `sudo -H -u sles bash /tmp/deploy_caasp.sh` ), b)in runcmd include `- cp -p /root/recover_deployment.sh /var/lib/cloud/scripts/per-boot/` just before `- reboot`, c)make deploy_caasp.sh idempotent by having it exit if it finds a directory under /home/sles with the name of the cluster, which is direvied from the /home/sles/.all_nodes file. Might have gotten there easier by using `scripts-per-once` but didnt' have time to explore.
 
-==== Base64 encoding a file to be inserted by cloud_init seems to preserve formatting, such as leading spaces 
+### Base64 encoding a file to be inserted by cloud_init seems to preserve formatting, such as leading spaces 
 * Encode with: `cat <file> | base64 | awk '{print}' ORS='' && echo` 
 * In the cloud init file: 
 ---- 
@@ -48,7 +48,7 @@ IMPORTANT: To get the desired effect of 1)update software and kernel, 2) reboot,
     content: <encoded content> 
 ---- 
  
-==== NTP should be configured in TF but doesn't seem to be for libvirt
+### NTP should be configured in TF but doesn't seem to be for libvirt
 * Can always just do it in cloud_init
 ----
 ntp:
@@ -57,12 +57,12 @@ ntp:
   pools: [0.pool.ntp.org, 1.pool.ntp.org, 2.pool.ntp.org]
 ----
 
-==== Running scripts
+### Running scripts
 * Currently putting them under runcmd so they run only when the instance is first created
 * Always run as root. To run as another users: `sudo -H -u <user> bash <absolute path to script>`
 ** Use same but `bash -c <commands>` to run loose commands
 
-==== Maintaining variables between TF and cloud init
+### Maintaining variables between TF and cloud init
 * First must be declared in variables.tf, such as:
 ----
 variable "username" {
@@ -87,7 +87,7 @@ data "template_file" "admin_cloud_init_user_data" {
 ----
 * Use in cloud-init file with `${username}`
  
-==== Resetting cloud-init after booting an image:
+### Resetting cloud-init after booting an image:
 
 * Ensure all clout-init packages are installed: `sudo zypper install cloud-init`
 ** Add `cloud-init-vmware-guestinfo` for VMs running on ESXi
