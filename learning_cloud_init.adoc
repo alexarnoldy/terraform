@@ -1,5 +1,15 @@
 
 == Cloud Init 
+
+==== cloud-init for Harvester seems to run differently. Had many issues with runcmd working correctly. Doesn't seem to like strings, only lists.
+* Working with variables in runcmd lists is difficult since it populates the script with each list item enclosed in single quotes.
+* Work around I ended up with was running each item under /bin/sh (-x is debug mode to print out the commands as they are run):
+
+----
+runcmd:
+  - [ sh, -xc, "zypper -n in -t pattern apparmor "]
+  - [ sh, -xc, 'export K3s_VERSION=v1.21.6+k3s1; curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=${K3s_VERSION} INSTALL_K3S_EXEC="server --write-kubeconfig-mode=644" sh -s - ' ]
+----
  
 ==== Review module execution order: /etc/cloud/cloud.cfg
 * Good, basic explanation: https://stackoverflow.com/questions/34095839/cloud-init-what-is-the-execution-order-of-cloud-config-directives 
